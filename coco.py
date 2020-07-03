@@ -23,7 +23,7 @@ Usage: import the module (see Jupyter notebooks for examples), or run from
     # Continue training the last model you trained
     python3 coco.py train --dataset=/path/to/coco/ --model=last
 
-    # Run COCO evaluatoin on the last model you trained
+    # Run COCO evaluation on the last model you trained
     python3 coco.py evaluate --dataset=/path/to/coco/ --model=last
 """
 
