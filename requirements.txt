@@ -1,0 +1,53 @@
+bokeh @ file:///tmp/build/80754af9/bokeh_1593187604562/work
+certifi==2020.6.20
+cffi==1.11.5
+click==7.1.2
+cloudpickle==1.2.2
+cycler==0.10.0
+Cython==0.28.5
+cytoolz==0.10.1
+dask==2.6.0
+decorator==4.4.1
+distributed==2.7.0
+fsspec==0.7.4
+graphviz==0.13.2
+h5py==2.8.0
+HeapDict==1.0.1
+icc-rt==2020.0.133
+imageio==2.4.1
+intel-openmp==2020.0.133
+Jinja2==2.11.2
+kiwisolver==1.2.0
+locket==0.2.0
+MarkupSafe==1.1.1
+matplotlib @ file:///tmp/build/80754af9/matplotlib-base_1592846044287/work
+mkl==2019.0
+mkl-fft==1.0.6
+mkl-random==1.0.1.1
+msgpack==1.0.0
+networkx==2.4
+numpy==1.16.1
+olefile==0.46
+packaging==20.4
+pandas==0.25.3
+partd==1.1.0
+Pillow==5.2.0
+psutil==5.7.0
+pycocotools==2.0.1
+pycparser==2.20
+pyparsing==2.4.6
+python-dateutil==2.8.1
+pytz==2019.3
+PyWavelets==1.1.1
+PyYAML==5.3.1
+scikit-image==0.16.2
+scipy==1.2.2
+six==1.11.0
+sortedcontainers==2.2.2
+TBB==0.1
+tblib==1.6.0
+toolz==0.10.0
+torch @ file:///home/ai-pc/Desktop/pytorch-mask-rcnn/torch-0.4.0-cp36-cp36m-linux_x86_64.whl    # https://download.pytorch.org/whl/cu90/torch-0.4.0-cp36-cp36m-linux_x86_64.whl
+tornado==5.1.1
+typing-extensions @ file:///tmp/build/80754af9/typing_extensions_1592847887441/work
+zict==2.0.0
