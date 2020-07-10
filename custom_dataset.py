@@ -9,9 +9,9 @@ class LampPostDataset(Dataset):
     def load_dataset(self, data_dir, is_train=True):
         self.add_class("dataset", 1, "lamp post")
 
-        images_dir = "../Master_Thesis_GvA_project/data/examples/"
+        images_dir = "../Master_Thesis_GvA_project/data/examples/images/"
         # data_dir + '/PanorAMS_panoramas_GT/'
-        annotations_dir = "../Master_Thesis_GvA_project/data/examples/examples_voc/lamp_post/"
+        annotations_dir = "../Master_Thesis_GvA_project/data/examples/examples_voc/lamp_post_new/"
         #  data_dir + '/PanorAMS_GT_pascal-VOC-absolute/'
 
         images = os.listdir(images_dir)
