@@ -51,3 +51,7 @@ torch @ file:///home/ai-pc/Desktop/pytorch-mask-rcnn/torch-0.4.0-cp36-cp36m-linu
 tornado==5.1.1
 typing-extensions @ file:///tmp/build/80754af9/typing_extensions_1592847887441/work
 zict==2.0.0
+
+torch~=0.4.0
+matplotlib~=3.2.2
+tqdm~=4.47.0

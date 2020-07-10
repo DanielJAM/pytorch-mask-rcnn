@@ -24,19 +24,19 @@ class Config(object):
     # Name the configurations. For example, 'COCO', 'Experiment 3', ...etc.
     # Useful if your code needs to do things differently depending on which
     # experiment is running.
-    NAME = None  # Override in sub-classes
+    NAME = "Test"  # Override in sub-classes
 
     # Path to pretrained imagenet model
-    IMAGENET_MODEL_PATH = os.path.join(os.getcwd(), "resnet50_imagenet.pth")
+    IMAGENET_MODEL_PATH = os.path.join(os.getcwd(), "models/resnet50_imagenet.pth")
 
     # NUMBER OF GPUs to use. For CPU use 0
-    GPU_COUNT = 2
+    GPU_COUNT = 1
 
     # Number of images to train with on each GPU. A 12GB GPU can typically
     # handle 2 images of 1024x1024px.
     # Adjust based on your GPU memory and image sizes. Use the highest
     # number that your GPU can handle for best performance.
-    IMAGES_PER_GPU = 2
+    IMAGES_PER_GPU = 1
 
     # Number of training steps per epoch
     # This doesn't need to match the size of the training set. Tensorboard
@@ -91,8 +91,8 @@ class Config(object):
     # Images are resized such that the smallest side is >= IMAGE_MIN_DIM and
     # the longest side is <= IMAGE_MAX_DIM. In case both conditions can't
     # be satisfied together the IMAGE_MAX_DIM is enforced.
-    IMAGE_MIN_DIM = 700
-    IMAGE_MAX_DIM = 1400
+    IMAGE_MIN_DIM = 704
+    IMAGE_MAX_DIM = 1408
     # If True, pad images with zeros such that they're (max_dim by max_dim)
     IMAGE_PADDING = True  # currently, the False option is not supported
 
@@ -161,7 +161,7 @@ class Config(object):
 
         # Input image size
         self.IMAGE_SHAPE = np.array(
-            [self.IMAGE_MAX_DIM, self.IMAGE_MAX_DIM, 3])
+            [self.IMAGE_MAX_DIM, self.IMAGE_MIN_DIM, 3])
 
         # Compute backbone size from input image size
         self.BACKBONE_SHAPES = np.array(
