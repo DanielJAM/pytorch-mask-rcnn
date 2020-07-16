@@ -26,6 +26,8 @@ import visualize
 from nms.nms_wrapper import nms
 from roialign.roi_align.crop_and_resize import CropAndResizeFunction
 
+import custom_dataset
+
 
 ############################################################
 #  Logging Utility Functions
@@ -1190,7 +1192,7 @@ def load_image_gt(dataset, config, image_id, augment=False,
     # Bounding boxes. Note that some boxes might be all zeros
     # if the corresponding mask got cropped out.
     # bbox: [num_instances, (y1, x1, y2, x2)]
-    bbox = utils.extract_bboxes(mask)
+    bbox = custom_dataset.LampPostDataset.extract_bboxes(image_id)
 
     # Active classes
     # Different datasets have different classes, so track the

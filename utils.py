@@ -311,8 +311,8 @@ def resize_image(image, min_dim=None, max_dim=None, padding=False):
     if padding:
         # Get new height and width
         h, w = image.shape[:2]
-        top_pad = (max_dim - h) // 2
-        bottom_pad = max_dim - h - top_pad
+        top_pad = (min_dim - h) // 2
+        bottom_pad = min_dim - h - top_pad
         left_pad = (max_dim - w) // 2
         right_pad = max_dim - w - left_pad
         padding = [(top_pad, bottom_pad), (left_pad, right_pad), (0, 0)]

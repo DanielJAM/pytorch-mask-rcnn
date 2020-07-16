@@ -1,5 +1,7 @@
-from tqdm import tqdm
 import os
+import numpy as np
+
+from tqdm import tqdm
 from utils import Dataset
 from xml.etree import ElementTree
 
@@ -36,7 +38,8 @@ class LampPostDataset(Dataset):
             self.add_image('dataset', image_id=image_id, path=img_path, annotation=ann_path)
 
     # extract bounding boxes from an annotation file
-    def extract_boxes(self, filename):
+    def extract_bboxes(self, image_id):
+        filename = image_id + ".xml"
         # load and parse the file
         tree = ElementTree.parse(filename)
         # get the root of the document
@@ -55,7 +58,8 @@ class LampPostDataset(Dataset):
         width = int(root.find('.//size/width').text)
         height = int(root.find('.//size/height').text)
 
-        return boxes, width, height
+        return boxes.astype(np.int32)
+
 
     # Return the path of the image
     def image_reference(self, image_id):
