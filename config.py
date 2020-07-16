@@ -91,13 +91,16 @@ class Config(object):
     # Images are resized such that the smallest side is >= IMAGE_MIN_DIM and
     # the longest side is <= IMAGE_MAX_DIM. In case both conditions can't
     # be satisfied together the IMAGE_MAX_DIM is enforced.
-    IMAGE_MIN_DIM = 704
-    IMAGE_MAX_DIM = 1408
+    # Must be divisible by 2 for 6 times.
+    IMAGE_MIN_DIM = 800  # own: 704, 640  original: 800
+    IMAGE_MAX_DIM = 1024  # own: 1408, 1344  original: 1024
     # If True, pad images with zeros such that they're (max_dim by max_dim)
     IMAGE_PADDING = True  # currently, the False option is not supported
 
     # Image mean (RGB)
-    MEAN_PIXEL = np.array([123.7, 116.8, 103.9])
+    MEAN_PIXEL = np.array([129.1, 132.9, 133.7])  # old: 123.7, 116.8, 103.9
+    # TMX7315080123-000281_pano_0000_000249 has 137.4, 137.8, 135.0
+    # TMX7316010203-001192_pano_0002_000595.jpg has 129.1, 132.9, 133.7
 
     # Number of ROIs per image to feed to classifier/mask heads
     # The Mask RCNN paper uses 512 but often the RPN doesn't generate
