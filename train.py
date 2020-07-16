@@ -43,54 +43,38 @@ test_set.load_dataset("../Master_Thesis_GvA_project/data/4_external", is_train=F
 test_set.prepare()
 print("Train: %d, Test: %d images" % (len(train_set.image_ids), len(test_set.image_ids)))
 
-train_set = modellib.Dataset(train_set, config, augment=True)
-train_generator = torch.utils.data.DataLoader(train_set, batch_size=1, shuffle=False, num_workers=4)
-test_set = modellib.Dataset(test_set, config, augment=True)
-test_generator = torch.utils.data.DataLoader(test_set, batch_size=1, shuffle=False, num_workers=4)
-batch_count = 0
-for inputs in train_generator:
-        images = inputs[0]
-        image_metas = inputs[1]
-        rpn_match = inputs[2]
-        rpn_bbox = inputs[3]
-        gt_class_ids = inputs[4]
-        gt_boxes = inputs[5]
-        # gt_masks = inputs[6]
-        batch_count += 1
-        print(gt_class_ids)
-#
-# # LOAD MODEL
-# print("Loading the model...")
-# model = modellib.MaskRCNN(config=config, model_dir='./models/')
-#
-# # LOAD WEIGHTS
-# model.load_weights('./models/mask_rcnn_coco.pth', callback=True)  # exclude=["mrcnn_class_logits", "mrcnn_bbox_fc",
-# # "mrcnn_bbox", "mrcnn_mask"]
-#
-# # TRAIN MODEL
-# # train heads with higher lr to speedup the learning
-# model.train_model(train_set, test_set, learning_rate=2 * config.LEARNING_RATE, epochs=5, layers='5+')
-# # history: model.loss_history, model.val_loss_history
-#
-# # TEST MODEL
-# model = modellib.MaskRCNN(config=config, model_dir='./models')
-# # loading the trained weights of the custom dataset
-# model.load_weights(model.find_last()[1])
-# # img = io.imread("../Master_Thesis_GvA_project/data/4_external/TMX7316010203-000363_pano_0000_000600")
-# # # detecting objects in the image
-# # result = model.detect([img])
-#
-# image_id = 'TMX7316010203-000363_pano_0000_000600'
-# image, image_meta, gt_class_id, gt_bbox, gt_mask = modellib.load_image_gt(test_set, config, image_id,
-#                                                                           use_mini_mask=False)
-# info = test_set.image_info[image_id]
-# print("image ID: {}.{} ({}) {}".format(info["source"], info["id"], image_id,
-#                                        test_set.image_reference(image_id)))
-# # Run object detection
-# results = model.detect([image])
-# # Display results
-#
-# r = results[0]
-# visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'],
-#                             test_set.class_names, r['scores'],
-#                             title="Predictions")
+# LOAD MODEL
+print("Loading the model...")
+model = modellib.MaskRCNN(config=config, model_dir='./models/')
+
+# LOAD WEIGHTS
+model.load_weights('./models/mask_rcnn_coco.pth', callback=True)  # exclude=["mrcnn_class_logits", "mrcnn_bbox_fc",
+# "mrcnn_bbox", "mrcnn_mask"]
+
+# TRAIN MODEL
+# train heads with higher lr to speedup the learning
+model.train_model(train_set, test_set, learning_rate=2 * config.LEARNING_RATE, epochs=5, layers='5+')
+# history: model.loss_history, model.val_loss_history
+
+# TEST MODEL
+model = modellib.MaskRCNN(config=config, model_dir='./models')
+# loading the trained weights of the custom dataset
+model.load_weights(model.find_last()[1])
+# img = io.imread("../Master_Thesis_GvA_project/data/4_external/TMX7316010203-000363_pano_0000_000600")
+# # detecting objects in the image
+# result = model.detect([img])
+
+image_id = 'TMX7316010203-000363_pano_0000_000600'
+image, image_meta, gt_class_id, gt_bbox, gt_mask = modellib.load_image_gt(test_set, config, image_id,
+                                                                          use_mini_mask=False)
+info = test_set.image_info[image_id]
+print("image ID: {}.{} ({}) {}".format(info["source"], info["id"], image_id,
+                                       test_set.image_reference(image_id)))
+# Run object detection
+results = model.detect([image])
+# Display results
+
+r = results[0]
+visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'],
+                            test_set.class_names, r['scores'],
+                            title="Predictions")

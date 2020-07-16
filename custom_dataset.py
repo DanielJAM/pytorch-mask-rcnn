@@ -21,7 +21,7 @@ class LampPostDataset(Dataset):
             image_id = filename[:-4]
 
             # skip images after split if we build training set
-            split = int(0.74 * len(images))
+            split = int(0.4 * len(images))
             if is_train and i > split:
                 continue
             # skip all images before split if we are building the test/val set
