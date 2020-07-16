@@ -1174,25 +1174,26 @@ def load_image_gt(dataset, config, image_id, augment=False,
     """
     # Load image and mask
     image = dataset.load_image(image_id)
-    mask, class_ids = dataset.load_mask(image_id)
+    # mask, class_ids = dataset.load_mask(image_id)
+    class_ids = dataset.class_ids
     shape = image.shape
     image, window, scale, padding = utils.resize_image(
         image,
         min_dim=config.IMAGE_MIN_DIM,
         max_dim=config.IMAGE_MAX_DIM,
         padding=config.IMAGE_PADDING)
-    mask = utils.resize_mask(mask, scale, padding)
+    # mask = utils.resize_mask(mask, scale, padding)
 
     # Random horizontal flips.
     if augment:
         if random.randint(0, 1):
             image = np.fliplr(image)
-            mask = np.fliplr(mask)
+            # mask = np.fliplr(mask)
 
     # Bounding boxes. Note that some boxes might be all zeros
     # if the corresponding mask got cropped out.
     # bbox: [num_instances, (y1, x1, y2, x2)]
-    bbox = custom_dataset.LampPostDataset.extract_bboxes(image_id)
+    bbox = custom_dataset.LampPostDataset.extract_bboxes(dataset, image_id)
 
     # Active classes
     # Different datasets have different classes, so track the
@@ -1202,13 +1203,13 @@ def load_image_gt(dataset, config, image_id, augment=False,
     active_class_ids[source_class_ids] = 1
 
     # Resize masks to smaller size to reduce memory usage
-    if use_mini_mask:
-        mask = utils.minimize_mask(bbox, mask, config.MINI_MASK_SHAPE)
+    # if use_mini_mask:
+    #     mask = utils.minimize_mask(bbox, mask, config.MINI_MASK_SHAPE)
 
     # Image meta data
     image_meta = compose_image_meta(image_id, shape, window, active_class_ids)
 
-    return image, image_meta, class_ids, bbox, mask
+    return image, image_meta, class_ids, bbox  #, mask
 
 
 def build_rpn_targets(image_shape, anchors, gt_class_ids, gt_boxes, config):
@@ -1371,7 +1372,8 @@ class Dataset(torch.utils.data.Dataset):
     def __getitem__(self, image_index):
         # Get GT bounding boxes and masks for image.
         image_id = self.image_ids[image_index]
-        image, image_metas, gt_class_ids, gt_boxes, gt_masks = \
+        # , gt_masks
+        image, image_metas, gt_class_ids, gt_boxes = \
             load_image_gt(self.dataset, self.config, image_id, augment=self.augment,
                           use_mini_mask=self.config.USE_MINI_MASK)
 
@@ -1391,7 +1393,7 @@ class Dataset(torch.utils.data.Dataset):
                 np.arange(gt_boxes.shape[0]), self.config.MAX_GT_INSTANCES, replace=False)
             gt_class_ids = gt_class_ids[ids]
             gt_boxes = gt_boxes[ids]
-            gt_masks = gt_masks[:, :, ids]
+            # gt_masks = gt_masks[:, :, ids]
 
         # Add to batch
         rpn_match = rpn_match[:, np.newaxis]
@@ -1404,9 +1406,9 @@ class Dataset(torch.utils.data.Dataset):
         rpn_bbox = torch.from_numpy(rpn_bbox).float()
         gt_class_ids = torch.from_numpy(gt_class_ids)
         gt_boxes = torch.from_numpy(gt_boxes).float()
-        gt_masks = torch.from_numpy(gt_masks.astype(int).transpose(2, 0, 1)).float()
+        # gt_masks = torch.from_numpy(gt_masks.astype(int).transpose(2, 0, 1)).float()
 
-        return images, image_metas, rpn_match, rpn_bbox, gt_class_ids, gt_boxes, gt_masks
+        return images, image_metas, rpn_match, rpn_bbox, gt_class_ids, gt_boxes  #, gt_masks
 
     def __len__(self):
         return self.image_ids.shape[0]

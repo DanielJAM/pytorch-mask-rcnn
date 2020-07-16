@@ -55,7 +55,7 @@ for inputs in train_generator:
         rpn_bbox = inputs[3]
         gt_class_ids = inputs[4]
         gt_boxes = inputs[5]
-        gt_masks = inputs[6]
+        # gt_masks = inputs[6]
         batch_count += 1
         print(gt_class_ids)
 #

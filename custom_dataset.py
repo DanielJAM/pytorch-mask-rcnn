@@ -39,24 +39,25 @@ class LampPostDataset(Dataset):
 
     # extract bounding boxes from an annotation file
     def extract_bboxes(self, image_id):
-        filename = image_id + ".xml"
+        filename = self.source_annotation_link(image_id)
         # load and parse the file
         tree = ElementTree.parse(filename)
         # get the root of the document
         root = tree.getroot()
         # extract each bounding box
-        boxes = list()
-        for box in root.findall('.//bndbox'):
+        box_annos = root.findall('.//bndbox')
+        boxes = np.zeros([len(box_annos), 4], dtype=np.int32)
+        for i, box in enumerate(box_annos):
             xmin = int(box.find('xmin').text)
             ymin = int(box.find('ymin').text)
             xmax = int(box.find('xmax').text)
             ymax = int(box.find('ymax').text)
-            coors = [xmin, ymin, xmax, ymax]
-            boxes.append(coors)
+            coors = np.array([xmin, ymin, xmax, ymax])
+            boxes[i] = coors
 
         # extract image dimensions
-        width = int(root.find('.//size/width').text)
-        height = int(root.find('.//size/height').text)
+        # width = int(root.find('.//size/width').text)
+        # height = int(root.find('.//size/height').text)
 
         return boxes.astype(np.int32)
 
