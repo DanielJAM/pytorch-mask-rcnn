@@ -775,7 +775,7 @@ def refine_detections(rois, probs, deltas, window, config):
         std_dev = std_dev.cuda()
     refined_rois = apply_box_deltas(rois, deltas_specific * std_dev)
 
-    # Convert coordiates to image domain
+    # Convert coordinates to image domain
     height, width = config.IMAGE_SHAPE[:2]
     scale = Variable(torch.from_numpy(np.array([height, width, height, width])).float(), requires_grad=False)
     if config.GPU_COUNT:
@@ -785,7 +785,7 @@ def refine_detections(rois, probs, deltas, window, config):
     # Clip boxes to image window
     refined_rois = clip_to_window(window, refined_rois)
 
-    # Round and cast to int since we're deadling with pixels now
+    # Round and cast to int since we're dealing with pixels now
     refined_rois = torch.round(refined_rois)
 
     # TODO: Filter out boxes with zero area
