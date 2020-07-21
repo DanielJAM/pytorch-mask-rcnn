@@ -28,12 +28,14 @@ import time
 import torch
 import visualize
 
+start_time = time.process_time()
+print("start time time(s): ", round(start_time, 2))
+
 # CONFIGURATION
 config = config.Config()
 config.display()
 
 # DATASET
-print("Loading datasets...")
 train_set = custom_dataset.LampPostDataset()
 train_set.load_dataset("../Master_Thesis_GvA_project/data/4_external", is_train=True)
 train_set.prepare()
@@ -43,18 +45,29 @@ test_set.load_dataset("../Master_Thesis_GvA_project/data/4_external", is_train=F
 test_set.prepare()
 print("Train: %d, Test: %d images" % (len(train_set.image_ids), len(test_set.image_ids)))
 
+data_time = time.process_time()
+print("load data time(s): ", round(data_time-start_time, 2), "total elapsed: ", round(data_time, 2))
+
 # LOAD MODEL
-print("Loading the model...")
 model = modellib.MaskRCNN(config=config, model_dir='./models/')
+
+load_model_time = time.process_time()
+print("loading model time(s): ", round(load_model_time-data_time, 2), "total elapsed: ", round(load_model_time, 2))
 
 # LOAD WEIGHTS
 model.load_weights('./models/mask_rcnn_coco.pth', callback=True)  # exclude=["mrcnn_class_logits", "mrcnn_bbox_fc",
 # "mrcnn_bbox", "mrcnn_mask"]
 
+load_weights_time = time.process_time()
+print("loading weights time(s): ", round(load_weights_time-load_model_time, 2), "total elapsed: ", round(load_weights_time, 2))
+
 # TRAIN MODEL
 # train heads with higher lr to speedup the learning
 model.train_model(train_set, test_set, learning_rate=2 * config.LEARNING_RATE, epochs=5, layers='5+')
 # history: model.loss_history, model.val_loss_history
+
+train_time = time.process_time()
+print("training time(s): ", round(train_time-load_weights_time, 2), "total elapsed: ", round(train_time, 2))
 
 # TEST MODEL
 model = modellib.MaskRCNN(config=config, model_dir='./models')

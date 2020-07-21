@@ -1471,10 +1471,10 @@ class MaskRCNN(nn.Module):
             self.anchors = self.anchors.cuda()
 
         # RPN
-        self.rpn = RPN(len(config.RPN_ANCHOR_RATIOS), config.RPN_ANCHOR_STRIDE, 256).to("cuda:0")
+        self.rpn = RPN(len(config.RPN_ANCHOR_RATIOS), config.RPN_ANCHOR_STRIDE, 256).cuda()
 
         # FPN Classifier
-        self.classifier = Classifier(256, config.POOL_SIZE, config.IMAGE_SHAPE, config.NUM_CLASSES).to("cuda:0")
+        self.classifier = Classifier(256, config.POOL_SIZE, config.IMAGE_SHAPE, config.NUM_CLASSES).cuda()
 
         # FPN Mask
         # self.mask = Mask(256, config.MASK_POOL_SIZE, config.IMAGE_SHAPE, config.NUM_CLASSES)
@@ -1616,7 +1616,7 @@ class MaskRCNN(nn.Module):
             molded_images = molded_images.cuda()
 
         # Wrap in variable
-        molded_images = Variable(molded_images, volatile=True)
+        molded_images = Variable(molded_images, volatile=False)
 
         # Run object detection
         detections = self.predict([molded_images, image_metas], mode='inference')
