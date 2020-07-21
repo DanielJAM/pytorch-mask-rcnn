@@ -20,6 +20,9 @@
 # from os import listdir
 # from xml.etree import ElementTree
 
+# import os
+# os.environ['CUDA_LAUNCH_BLOCKING'] = '1'  # for debugging
+
 import config
 import custom_dataset
 import model as modellib

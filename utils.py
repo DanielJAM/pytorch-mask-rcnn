@@ -276,9 +276,9 @@ class Dataset(object):
 
 def resize_image(image, min_dim=None, max_dim=None, padding=False):
     """
-    Resizes an image keeping the aspect ratio.
+    Resize an image keeping the aspect ratio.
 
-    min_dim: if provided, resizes the image such that it's smaller
+    min_dim: if provided, resize the image such that it's smaller
         dimension == min_dim
     max_dim: if provided, ensures that the image longest side doesn't
         exceed this value.
@@ -326,7 +326,7 @@ def resize_image(image, min_dim=None, max_dim=None, padding=False):
 
 
 def resize_mask(mask, scale, padding):
-    """Resizes a mask using the given scale and padding.
+    """Resize a mask using the given scale and padding.
     Typically, you get the scale and padding from resize_image() to
     ensure both, the image and the mask, are resized consistently.
 
@@ -359,7 +359,7 @@ def minimize_mask(bbox, mask, mini_shape):
 
 
 def expand_mask(bbox, mini_mask, image_shape):
-    """Resizes mini masks back to image size. Reverses the change
+    """Resize mini masks back to image size. Reverses the change
     of minimize_mask().
 
     See inspect_data.ipynb notebook for more details.

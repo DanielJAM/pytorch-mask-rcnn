@@ -11,17 +11,18 @@ class LampPostDataset(Dataset):
     def load_dataset(self, data_dir, is_train=True):
         self.add_class("dataset", 1, "lamp post")
 
-        images_dir = "../Master_Thesis_GvA_project/data/examples/images/"
-        # images_dir = data_dir + '/PanorAMS_panoramas_GT/'
-        annotations_dir = "../Master_Thesis_GvA_project/data/examples/examples_voc/lamp_post/"
-        # annotations_dir = data_dir + '/PanorAMS_GT_pascal-VOC-absolute/'
+        # images_dir = "../Master_Thesis_GvA_project/data/examples/images/"
+        images_dir = data_dir + '/PanorAMS_panoramas_GT/'
+        # annotations_dir = "../Master_Thesis_GvA_project/data/examples/examples_voc/lamp_post/"
+        annotations_dir = data_dir + '/PanorAMS_GT_pascal-VOC-absolute/'
 
         images = os.listdir(images_dir)
         for i, filename in tqdm(enumerate(images)):
             image_id = filename[:-4]
 
             # skip images after split if we build training set
-            split = int(0.4 * len(images))
+            # split = int(0.4 * len(images))  # Test example dataset
+            split = int(0.8 * len(images))  # For actual dataset
             if is_train and i > split:
                 continue
             # skip all images before split if we are building the test/val set

@@ -30,7 +30,7 @@ class Config(object):
     IMAGENET_MODEL_PATH = os.path.join(os.getcwd(), "models/resnet50_imagenet.pth")
 
     # NUMBER OF GPUs to use. For CPU use 0
-    GPU_COUNT = 2
+    GPU_COUNT = 0
 
     # Number of images to train with on each GPU. A 12GB GPU can typically
     # handle 2 images of 1024x1024px.

@@ -542,7 +542,7 @@ def bbox_overlaps(boxes1, boxes2):
 
 def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):
     # , gt_masks
-    """Subsamples proposals and generates target box refinment, class_ids,
+    """Subsample proposals and generates target box refinement, class_ids,
     and masks for each.
 
     Inputs:
@@ -560,13 +560,13 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):
     target_class_ids: [batch, TRAIN_ROIS_PER_IMAGE]. Integer class IDs.
     target_deltas: [batch, TRAIN_ROIS_PER_IMAGE, NUM_CLASSES,
                     (dy, dx, log(dh), log(dw), class_id)]
-                   Class-specific bbox refinments.
+                   Class-specific bbox refinements.
     target_mask: [batch, TRAIN_ROIS_PER_IMAGE, height, width)
                  Masks cropped to bbox boundaries and resized to neural
                  network output size.
     """
 
-    # Currently only supports batchsize 1
+    # Currently only supports batch size 1
     proposals = proposals.squeeze(0)
     gt_class_ids = gt_class_ids.squeeze(0)
     gt_boxes = gt_boxes.squeeze(0)
@@ -624,6 +624,8 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):
         roi_gt_class_ids = gt_class_ids[roi_gt_box_assignment.data]
 
         # Compute bbox refinement for positive ROIs
+        print(positive_rois.data)
+        print(roi_gt_boxes.data)
         deltas = Variable(utils.box_refinement(positive_rois.data, roi_gt_boxes.data), requires_grad=False)
         std_dev = Variable(torch.from_numpy(config.BBOX_STD_DEV).float(), requires_grad=False)
         if config.GPU_COUNT:
@@ -1458,7 +1460,10 @@ class MaskRCNN(nn.Module):
 
         # Top-down Layers
         # TODO: add assert to verify feature map sizes match what's in config
-        self.fpn = FPN(C1, C2, C3, C4, C5, out_channels=256).cuda()
+        if config.GPU_COUNT:
+            self.fpn = FPN(C1, C2, C3, C4, C5, out_channels=256).cuda()
+        else:
+            self.fpn = FPN(C1, C2, C3, C4, C5, out_channels=256)
 
         # Generate Anchors
         self.anchors = Variable(torch.from_numpy(utils.generate_pyramid_anchors(config.RPN_ANCHOR_SCALES,
@@ -1471,10 +1476,16 @@ class MaskRCNN(nn.Module):
             self.anchors = self.anchors.cuda()
 
         # RPN
-        self.rpn = RPN(len(config.RPN_ANCHOR_RATIOS), config.RPN_ANCHOR_STRIDE, 256).cuda()
+        if self.config.GPU_COUNT:
+            self.rpn = RPN(len(config.RPN_ANCHOR_RATIOS), config.RPN_ANCHOR_STRIDE, 256).cuda()
+        else:
+            self.rpn = RPN(len(config.RPN_ANCHOR_RATIOS), config.RPN_ANCHOR_STRIDE, 256)
 
         # FPN Classifier
-        self.classifier = Classifier(256, config.POOL_SIZE, config.IMAGE_SHAPE, config.NUM_CLASSES).cuda()
+        if self.config.GPU_COUNT:
+            self.classifier = Classifier(256, config.POOL_SIZE, config.IMAGE_SHAPE, config.NUM_CLASSES).cuda()
+        else:
+            self.classifier = Classifier(256, config.POOL_SIZE, config.IMAGE_SHAPE, config.NUM_CLASSES)
 
         # FPN Mask
         # self.mask = Mask(256, config.MASK_POOL_SIZE, config.IMAGE_SHAPE, config.NUM_CLASSES)
@@ -1697,17 +1708,17 @@ class MaskRCNN(nn.Module):
             # output is [batch, num_detections, (y1, x1, y2, x2, class_id, score)] in image coordinates
             detections = detection_layer(self.config, rpn_rois, mrcnn_class, mrcnn_bbox, image_metas)
 
-            # Convert boxes to normalized coordinates
-            # TODO: let DetectionLayer return normalized coordinates to avoid
-            #       unnecessary conversions
-            h, w = self.config.IMAGE_SHAPE[:2]
-            scale = Variable(torch.from_numpy(np.array([h, w, h, w])).float(), requires_grad=False)
-            if self.config.GPU_COUNT:
-                scale = scale.cuda()
-            detection_boxes = detections[:, :4] / scale
-
-            # Add back batch dimension
-            detection_boxes = detection_boxes.unsqueeze(0)
+            # # Convert boxes to normalized coordinates
+            # # TODO: let DetectionLayer return normalized coordinates to avoid
+            # #       unnecessary conversions
+            # h, w = self.config.IMAGE_SHAPE[:2]
+            # scale = Variable(torch.from_numpy(np.array([h, w, h, w])).float(), requires_grad=False)
+            # if self.config.GPU_COUNT:
+            #     scale = scale.cuda()
+            # detection_boxes = detections[:, :4] / scale
+            #
+            # # Add back batch dimension
+            # detection_boxes = detection_boxes.unsqueeze(0)
 
             # Create masks for detections
             # mrcnn_mask = self.mask(mrcnn_feature_maps, detection_boxes)
