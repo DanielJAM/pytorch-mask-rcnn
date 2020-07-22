@@ -507,9 +507,9 @@ def bbox_overlaps(boxes1, boxes2):
     """Computes IoU overlaps between two sets of boxes.
     boxes1, boxes2: [N, (y1, x1, y2, x2)].
     """
-    # 1. Tile boxes2 and repeate boxes1. This allows us to compare
+    # 1. Tile boxes2 and repeat boxes1. This allows us to compare
     # every boxes1 against every boxes2 without loops.
-    # TF doesn't have an equivalent to np.repeate() so simulate it
+    # TF doesn't have an equivalent to np.repeat() so simulate it
     # using tf.tile() and tf.reshape.
     boxes1_repeat = boxes2.size()[0]
     boxes2_repeat = boxes1.size()[0]
@@ -540,8 +540,7 @@ def bbox_overlaps(boxes1, boxes2):
     return overlaps
 
 
-def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):
-    # , gt_masks
+def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):  # , gt_masks
     """Subsample proposals and generates target box refinement, class_ids,
     and masks for each.
 
@@ -596,7 +595,7 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):
     # Compute overlaps matrix [proposals, gt_boxes]
     overlaps = bbox_overlaps(proposals, gt_boxes)
 
-    # Determine postive and negative ROIs
+    # Determine positive and negative ROIs
     roi_iou_max = torch.max(overlaps, dim=1)[0]
 
     # 1. Positive ROIs are those with >= 0.5 IoU with a GT box
@@ -619,13 +618,14 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):
 
         # Assign positive ROIs to GT boxes.
         positive_overlaps = overlaps[positive_indices.data, :]
+        print(positive_overlaps)
         roi_gt_box_assignment = torch.max(positive_overlaps, dim=1)[1]
         roi_gt_boxes = gt_boxes[roi_gt_box_assignment.data, :]
+        print(roi_gt_box_assignment.data)
+        print(gt_class_ids)
         roi_gt_class_ids = gt_class_ids[roi_gt_box_assignment.data]
 
         # Compute bbox refinement for positive ROIs
-        print(positive_rois.data)
-        print(roi_gt_boxes.data)
         deltas = Variable(utils.box_refinement(positive_rois.data, roi_gt_boxes.data), requires_grad=False)
         std_dev = Variable(torch.from_numpy(config.BBOX_STD_DEV).float(), requires_grad=False)
         if config.GPU_COUNT:
@@ -1929,7 +1929,7 @@ class MaskRCNN(nn.Module):
             # , mrcnn_mask_loss.data.cpu()[0])
 
             # Statistics
-            loss_sum += loss.data.cpu()[0] / steps
+            loss_sum += loss.data.cpu().item() / steps
             loss_rpn_class_sum += rpn_class_loss.data.cpu().item() / steps
             loss_rpn_bbox_sum += rpn_bbox_loss.data.cpu().item() / steps
             loss_mrcnn_class_sum += mrcnn_class_loss.data.cpu().item() / steps
