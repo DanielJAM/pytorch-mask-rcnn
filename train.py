@@ -62,7 +62,8 @@ model.load_weights('./models/mask_rcnn_coco.pth', callback=True)  # exclude=["mr
 # "mrcnn_bbox", "mrcnn_mask"]
 
 load_weights_time = time.process_time()
-print("loading weights time(s): ", round(load_weights_time-load_model_time, 2), "total elapsed: ", round(load_weights_time, 2))
+print("loading weights time(s): ", round(load_weights_time-load_model_time, 2), "total elapsed: ",
+      round(load_weights_time, 2))
 
 # TRAIN MODEL
 # train heads with higher lr to speedup the learning

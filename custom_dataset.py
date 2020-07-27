@@ -17,26 +17,28 @@ class LampPostDataset(Dataset):
         annotations_dir = data_dir + '/PanorAMS_GT_pascal-VOC-absolute/'
 
         images = os.listdir(images_dir)
+        annots = os.listdir(annotations_dir)
         for i, filename in tqdm(enumerate(images)):
             image_id = filename[:-4]
 
-            # skip images after split if we build training set
-            # split = int(0.4 * len(images))  # Test example dataset
-            split = int(0.8 * len(images))  # For actual dataset
-            if is_train and i > split:
-                continue
-            # skip all images before split if we are building the test/val set
-            if not is_train and i <= split:
-                continue
+            if image_id + ".xml" in annots:
+                # skip images after split if we build training set
+                # split = int(0.4 * len(images))  # Test example dataset
+                split = int(0.8 * len(images))  # For actual dataset
+                if is_train and i > split:
+                    continue
+                # skip all images before split if we are building the test/val set
+                if not is_train and i <= split:
+                    continue
 
-            # setting image file
-            img_path = images_dir + filename
+                # setting image file
+                img_path = images_dir + filename
 
-            # setting annotations file
-            ann_path = annotations_dir + image_id + '.xml'
+                # setting annotations file
+                ann_path = annotations_dir + image_id + '.xml'
 
-            # adding images and annotations to dataset
-            self.add_image('dataset', image_id=image_id, path=img_path, annotation=ann_path)
+                # adding images and annotations to dataset
+                self.add_image('dataset', image_id=image_id, path=img_path, annotation=ann_path)
 
     # extract bounding boxes from an annotation file
     def extract_bboxes(self, image_id):
