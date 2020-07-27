@@ -624,6 +624,7 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):  # , gt_m
         print(roi_gt_box_assignment.data)
         print(gt_class_ids)
         roi_gt_class_ids = gt_class_ids[roi_gt_box_assignment.data]
+        print(roi_gt_class_ids)
 
         # Compute bbox refinement for positive ROIs
         deltas = Variable(utils.box_refinement(positive_rois.data, roi_gt_boxes.data), requires_grad=False)
