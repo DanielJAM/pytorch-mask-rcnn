@@ -427,7 +427,7 @@ def pyramid_roi_align(inputs, pool_size, image_shape):
     constructor.
     """
 
-    # Currently only supports batchsize 1
+    # Currently only supports batch size 1
     for i in range(len(inputs)):
         inputs[i] = inputs[i].squeeze(0)
 
@@ -593,24 +593,23 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):  # , gt_m
 
     # Compute overlaps matrix [proposals, gt_boxes]
     overlaps = bbox_overlaps(proposals, gt_boxes)
-    print("overlaps shape: ", overlaps.size())
-    print("overlaps: ", overlaps[0])
+    # print("overlaps shape: ", overlaps.size())
+    # print("overlaps: ", overlaps[0])
 
     # Determine positive and negative ROIs
     roi_iou_max = torch.max(overlaps, dim=1)[0]
-    print("roi iou max: ", roi_iou_max)
-    print("roi iou max shape: ", roi_iou_max.size())
+    # print("roi iou max: ", roi_iou_max)
+    # print("roi iou max shape: ", roi_iou_max.size())
 
     # 1. Positive ROIs are those with >= 0.5 IoU with a GT box
     positive_roi_bool = roi_iou_max >= 0.5
-    print((positive_roi_bool == max(positive_roi_bool)).nonzero())
-    print(positive_roi_bool.size())
+    # print("# roi above 0.5: ", positive_roi_bool.nonzero().size())
 
     # Subsample ROIs. Aim for 33% positive
     # Positive ROIs
     if torch.nonzero(positive_roi_bool).size()[0]:
         positive_indices = torch.nonzero(positive_roi_bool)[:, 0]
-        print("pos idx: ", positive_indices)
+        # print("pos idx: ", positive_indices)
 
         positive_count = int(config.TRAIN_ROIS_PER_IMAGE *
                              config.ROI_POSITIVE_RATIO)
@@ -621,16 +620,20 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):  # , gt_m
         positive_indices = positive_indices[rand_idx]
         positive_count = positive_indices.size()[0]
         positive_rois = proposals[positive_indices.data, :]
+        # print("pos rois: ", positive_rois)
 
         # Assign positive ROIs to GT boxes.
         positive_overlaps = overlaps[positive_indices.data, :]
-        print(positive_overlaps)
+        # print(positive_overlaps)
         roi_gt_box_assignment = torch.max(positive_overlaps, dim=1)[1]
         roi_gt_boxes = gt_boxes[roi_gt_box_assignment.data, :]
-        print("roi gt box ass: ", roi_gt_box_assignment.data)
-        print("gt class ids: ", gt_class_ids)
-        roi_gt_class_ids = gt_class_ids[roi_gt_box_assignment.data]
-        print("roi gt class ids: ", roi_gt_class_ids)
+        # print("roi gt box ass: ", roi_gt_box_assignment.data)
+        # print(roi_gt_box_assignment.size())
+        # print("roi gt boxes: ", roi_gt_boxes)
+        # print("gt class ids: ", gt_class_ids)
+        roi_gt_class_ids = gt_class_ids[1:]
+        for _ in range(len(roi_gt_box_assignment)-1):
+            roi_gt_class_ids = torch.cat([roi_gt_class_ids, gt_class_ids[1:]], dim=0)
 
         # Compute bbox refinement for positive ROIs
         deltas = Variable(utils.box_refinement(positive_rois.data, roi_gt_boxes.data), requires_grad=False)
@@ -695,7 +698,10 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):  # , gt_m
         zeros = Variable(torch.zeros(negative_count, dtype=torch.int64), requires_grad=False)
         if config.GPU_COUNT:
             zeros = zeros.cuda()
+        # print("roi gt class ids: ", roi_gt_class_ids)
+        # print(negative_count)
         roi_gt_class_ids = torch.cat([roi_gt_class_ids, zeros], dim=0)
+        # print("roi gt class ids + zero pads: ", roi_gt_class_ids)
         zeros = Variable(torch.zeros(negative_count, 4), requires_grad=False)
         if config.GPU_COUNT:
             zeros = zeros.cuda()
@@ -1151,6 +1157,7 @@ def compute_losses(rpn_match, rpn_bbox, rpn_class_logits, rpn_pred_bbox, target_
                    target_deltas, mrcnn_bbox):
     rpn_class_loss = compute_rpn_class_loss(rpn_match, rpn_class_logits)
     rpn_bbox_loss = compute_rpn_bbox_loss(rpn_bbox, rpn_match, rpn_pred_bbox)
+    # print("target class ids", target_class_ids, "\n")
     mrcnn_class_loss = compute_mrcnn_class_loss(target_class_ids, mrcnn_class_logits)
     mrcnn_bbox_loss = compute_mrcnn_bbox_loss(target_deltas, target_class_ids, mrcnn_bbox)
     # mrcnn_mask_loss = compute_mrcnn_mask_loss(target_mask, target_class_ids, mrcnn_mask)
@@ -1400,9 +1407,10 @@ class Dataset(torch.utils.data.Dataset):
 
         # If more instances than fits in the array, sub-sample from them.
         if gt_boxes.shape[0] > self.config.MAX_GT_INSTANCES:
+            print(gt_boxes)
             ids = np.random.choice(
                 np.arange(gt_boxes.shape[0]), self.config.MAX_GT_INSTANCES, replace=False)
-            gt_class_ids = gt_class_ids[ids]
+            # gt_class_ids = gt_class_ids[ids]
             gt_boxes = gt_boxes[ids]
             # gt_masks = gt_masks[:, :, ids]
 
@@ -1706,8 +1714,7 @@ class MaskRCNN(nn.Module):
                                   nms_threshold=self.config.RPN_NMS_THRESHOLD,
                                   anchors=self.anchors,
                                   config=self.config)
-        print("rpn rois shape: ", rpn_rois.size())
-        print(torch.max(rpn_rois[0]))
+        # print("rpn rois shape: ", rpn_rois.size())
 
         if mode == 'inference':
             # Network Heads
@@ -1752,7 +1759,7 @@ class MaskRCNN(nn.Module):
                 scale = scale.cuda()
             gt_boxes = gt_boxes / scale
 
-            print(gt_boxes)
+            # print("gt boxes: ", gt_boxes)
             # Generate detection targets
             # Subsamples proposals and generates target outputs for training
             # Note that proposal class IDs, gt_boxes, and gt_masks are zero
@@ -1839,7 +1846,7 @@ class MaskRCNN(nn.Module):
         ], lr=learning_rate, momentum=self.config.LEARNING_MOMENTUM)
 
         for epoch in range(self.epoch + 1, epochs + 1):
-            log("Epoch {}/{}.".format(epoch, epochs))
+            print("Epoch {}/{}.".format(epoch, epochs))
 
             # Training
             # , loss_mrcnn_mask
@@ -1897,13 +1904,13 @@ class MaskRCNN(nn.Module):
             gt_class_ids = Variable(gt_class_ids)
             gt_boxes = Variable(gt_boxes)
             # gt_masks = Variable(gt_masks)
-            print("image, metas, rpn match, rpn bbox, gt class ids, gt boxes")
-            print(images.size())
-            print(image_metas)
-            print(rpn_match.size())
-            print(rpn_bbox.size())
-            print(gt_class_ids)
-            print(gt_boxes)
+            # print("image, metas, rpn match, rpn bbox, gt class ids, gt boxes")
+            # print("\t", images.size())
+            # print("\t", image_metas)
+            # print("\t", rpn_match.size())
+            # print("\t", rpn_bbox.size())
+            # print("\t", gt_class_ids)
+            # print("\t", gt_boxes)
 
             # To GPU
             if self.config.GPU_COUNT:
@@ -2022,17 +2029,18 @@ class MaskRCNN(nn.Module):
             printProgressBar(step + 1, steps, prefix="\t{}/{}".format(step + 1, steps),
                              suffix="Complete - loss: {:.5f} - rpn_class_loss: {:.5f} - rpn_bbox_loss: {:.5f} - "
                                     "mrcnn_class_loss: {:.5f} - mrcnn_bbox_loss: {:.5f}".format(
-                                 loss.data.cpu()[0], rpn_class_loss.data.cpu()[0], rpn_bbox_loss.data.cpu()[0],
-                                 mrcnn_class_loss.data.cpu()[0], mrcnn_bbox_loss.data.cpu()[0]), length=10)
+                                 loss.data.cpu().item(), rpn_class_loss.data.cpu().item(),
+                                 rpn_bbox_loss.data.cpu().item(), mrcnn_class_loss.data.cpu().item(),
+                                 mrcnn_bbox_loss.data.cpu().item()), length=10)
             # - mrcnn_mask_loss: {:.5f}
             # , mrcnn_mask_loss.data.cpu()[0]
 
             # Statistics
-            loss_sum += loss.data.cpu()[0] / steps
-            loss_rpn_class_sum += rpn_class_loss.data.cpu()[0] / steps
-            loss_rpn_bbox_sum += rpn_bbox_loss.data.cpu()[0] / steps
-            loss_mrcnn_class_sum += mrcnn_class_loss.data.cpu()[0] / steps
-            loss_mrcnn_bbox_sum += mrcnn_bbox_loss.data.cpu()[0] / steps
+            loss_sum += loss.data.cpu().item() / steps
+            loss_rpn_class_sum += rpn_class_loss.data.cpu().item() / steps
+            loss_rpn_bbox_sum += rpn_bbox_loss.data.cpu().item() / steps
+            loss_mrcnn_class_sum += mrcnn_class_loss.data.cpu().item() / steps
+            loss_mrcnn_bbox_sum += mrcnn_bbox_loss.data.cpu().item() / steps
             # loss_mrcnn_mask_sum += mrcnn_mask_loss.data.cpu()[0] / steps
 
             # Break after 'steps' steps
