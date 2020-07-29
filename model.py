@@ -288,8 +288,7 @@ class ResNet(nn.Module):
                 nn.BatchNorm2d(planes * block.expansion, eps=0.001, momentum=0.01),
             )
 
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample))
+        layers = [block(self.inplanes, planes, stride, downsample)]
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
             layers.append(block(self.inplanes, planes))
@@ -342,7 +341,7 @@ def proposal_layer(inputs, proposal_count, nms_threshold, anchors, config=None):
     """Receives anchor scores and selects a subset to pass as proposals
     to the second stage. Filtering is done based on anchor scores and
     non-max suppression to remove overlaps. It also applies bounding
-    box refinment detals to anchors.
+    box refinement details to anchors.
 
     Inputs:
         rpn_probs: [batch, anchors, (bg prob, fg prob)]
@@ -352,7 +351,7 @@ def proposal_layer(inputs, proposal_count, nms_threshold, anchors, config=None):
         Proposals in normalized coordinates [batch, rois, (y1, x1, y2, x2)]
     """
 
-    # Currently only supports batchsize 1
+    # Currently only supports batch size 1
     inputs[0] = inputs[0].squeeze(0)
     inputs[1] = inputs[1].squeeze(0)
 
@@ -594,17 +593,24 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):  # , gt_m
 
     # Compute overlaps matrix [proposals, gt_boxes]
     overlaps = bbox_overlaps(proposals, gt_boxes)
+    print("overlaps shape: ", overlaps.size())
+    print("overlaps: ", overlaps[0])
 
     # Determine positive and negative ROIs
     roi_iou_max = torch.max(overlaps, dim=1)[0]
+    print("roi iou max: ", roi_iou_max)
+    print("roi iou max shape: ", roi_iou_max.size())
 
     # 1. Positive ROIs are those with >= 0.5 IoU with a GT box
     positive_roi_bool = roi_iou_max >= 0.5
+    print((positive_roi_bool == max(positive_roi_bool)).nonzero())
+    print(positive_roi_bool.size())
 
     # Subsample ROIs. Aim for 33% positive
     # Positive ROIs
     if torch.nonzero(positive_roi_bool).size()[0]:
         positive_indices = torch.nonzero(positive_roi_bool)[:, 0]
+        print("pos idx: ", positive_indices)
 
         positive_count = int(config.TRAIN_ROIS_PER_IMAGE *
                              config.ROI_POSITIVE_RATIO)
@@ -621,10 +627,10 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):  # , gt_m
         print(positive_overlaps)
         roi_gt_box_assignment = torch.max(positive_overlaps, dim=1)[1]
         roi_gt_boxes = gt_boxes[roi_gt_box_assignment.data, :]
-        print(roi_gt_box_assignment.data)
-        print(gt_class_ids)
+        print("roi gt box ass: ", roi_gt_box_assignment.data)
+        print("gt class ids: ", gt_class_ids)
         roi_gt_class_ids = gt_class_ids[roi_gt_box_assignment.data]
-        print(roi_gt_class_ids)
+        print("roi gt class ids: ", roi_gt_class_ids)
 
         # Compute bbox refinement for positive ROIs
         deltas = Variable(utils.box_refinement(positive_rois.data, roi_gt_boxes.data), requires_grad=False)
@@ -1671,6 +1677,7 @@ class MaskRCNN(nn.Module):
 
         # Feature extraction
         [p2_out, p3_out, p4_out, p5_out, p6_out] = self.fpn(molded_images)
+        # print(p2_out.size(), p3_out.size(), p4_out.size(), p5_out.size(), p6_out.size())
 
         # Note that P6 is used in RPN, but not in the classifier heads.
         rpn_feature_maps = [p2_out, p3_out, p4_out, p5_out, p6_out]
@@ -1699,6 +1706,8 @@ class MaskRCNN(nn.Module):
                                   nms_threshold=self.config.RPN_NMS_THRESHOLD,
                                   anchors=self.anchors,
                                   config=self.config)
+        print("rpn rois shape: ", rpn_rois.size())
+        print(torch.max(rpn_rois[0]))
 
         if mode == 'inference':
             # Network Heads
@@ -1743,6 +1752,7 @@ class MaskRCNN(nn.Module):
                 scale = scale.cuda()
             gt_boxes = gt_boxes / scale
 
+            print(gt_boxes)
             # Generate detection targets
             # Subsamples proposals and generates target outputs for training
             # Note that proposal class IDs, gt_boxes, and gt_masks are zero
@@ -1887,6 +1897,13 @@ class MaskRCNN(nn.Module):
             gt_class_ids = Variable(gt_class_ids)
             gt_boxes = Variable(gt_boxes)
             # gt_masks = Variable(gt_masks)
+            print("image, metas, rpn match, rpn bbox, gt class ids, gt boxes")
+            print(images.size())
+            print(image_metas)
+            print(rpn_match.size())
+            print(rpn_bbox.size())
+            print(gt_class_ids)
+            print(gt_boxes)
 
             # To GPU
             if self.config.GPU_COUNT:
