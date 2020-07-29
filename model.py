@@ -1,10 +1,11 @@
 """
 Mask R-CNN
-The main Mask R-CNN model implemenetation.
+The main Mask R-CNN model implementation.
 
 Copyright (c) 2017 Matterport, Inc.
 Licensed under the MIT License (see LICENSE for details)
 Written by Waleed Abdulla
+Edited and extended by Daniel Maaskant
 """
 
 import datetime
@@ -46,7 +47,7 @@ def log(text, array=None):
     print(text)
 
 
-def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):
+def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):
     """
     Call in a loop to create terminal progress bar
     @params:
@@ -59,8 +60,8 @@ def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=
         fill        - Optional  : bar fill character (Str)
     """
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-    filledLength = int(length * iteration // total)
-    bar = fill * filledLength + '-' * (length - filledLength)
+    filled_length = int(length * iteration // total)
+    bar = fill * filled_length + '-' * (length - filled_length)
     print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end='\n')
     # Print New Line on Complete
     if iteration == total:
@@ -68,7 +69,7 @@ def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=
 
 
 ############################################################
-#  Pytorch Utility Functions
+#  PyTorch Utility Functions
 ############################################################
 
 def unique1d(tensor):
@@ -632,7 +633,7 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):  # , gt_m
         # print("roi gt boxes: ", roi_gt_boxes)
         # print("gt class ids: ", gt_class_ids)
         roi_gt_class_ids = gt_class_ids[1:]
-        for _ in range(len(roi_gt_box_assignment)-1):
+        for _ in range(len(roi_gt_box_assignment) - 1):
             roi_gt_class_ids = torch.cat([roi_gt_class_ids, gt_class_ids[1:]], dim=0)
 
         # Compute bbox refinement for positive ROIs
@@ -1944,12 +1945,12 @@ class MaskRCNN(nn.Module):
                 batch_count = 0
 
             # Progress
-            printProgressBar(step + 1, steps, prefix="\t{}/{}".format(step + 1, steps),
-                             suffix="Complete - loss: {:.5f} - rpn_class_loss: {:.5f} - rpn_bbox_loss: {:.5f} - "
-                                    "mrcnn_class_loss: {:.5f} - mrcnn_bbox_loss: {:.5f}".format(
-                                 loss.data.cpu().item(), rpn_class_loss.data.cpu().item(),
-                                 rpn_bbox_loss.data.cpu().item(), mrcnn_class_loss.data.cpu().item(),
-                                 mrcnn_bbox_loss.data.cpu().item()), length=10)
+            print_progress_bar(step + 1, steps, prefix="\t{}/{}".format(step + 1, steps),
+                               suffix="Complete - loss: {:.5f} - rpn_class_loss: {:.5f} - rpn_bbox_loss: {:.5f} - "
+                                      "mrcnn_class_loss: {:.5f} - mrcnn_bbox_loss: {:.5f}".format(
+                                   loss.data.cpu().item(), rpn_class_loss.data.cpu().item(),
+                                   rpn_bbox_loss.data.cpu().item(), mrcnn_class_loss.data.cpu().item(),
+                                   mrcnn_bbox_loss.data.cpu().item()), length=10)
             #  - mrcnn_mask_loss: {:.5f}
             # , mrcnn_mask_loss.data.cpu()[0])
 
@@ -2026,12 +2027,12 @@ class MaskRCNN(nn.Module):
             loss = rpn_class_loss + rpn_bbox_loss + mrcnn_class_loss + mrcnn_bbox_loss  # + mrcnn_mask_loss
 
             # Progress
-            printProgressBar(step + 1, steps, prefix="\t{}/{}".format(step + 1, steps),
-                             suffix="Complete - loss: {:.5f} - rpn_class_loss: {:.5f} - rpn_bbox_loss: {:.5f} - "
-                                    "mrcnn_class_loss: {:.5f} - mrcnn_bbox_loss: {:.5f}".format(
-                                 loss.data.cpu().item(), rpn_class_loss.data.cpu().item(),
-                                 rpn_bbox_loss.data.cpu().item(), mrcnn_class_loss.data.cpu().item(),
-                                 mrcnn_bbox_loss.data.cpu().item()), length=10)
+            print_progress_bar(step + 1, steps, prefix="\t{}/{}".format(step + 1, steps),
+                               suffix="Complete - loss: {:.5f} - rpn_class_loss: {:.5f} - rpn_bbox_loss: {:.5f} - "
+                                      "mrcnn_class_loss: {:.5f} - mrcnn_bbox_loss: {:.5f}".format(
+                                   loss.data.cpu().item(), rpn_class_loss.data.cpu().item(),
+                                   rpn_bbox_loss.data.cpu().item(), mrcnn_class_loss.data.cpu().item(),
+                                   mrcnn_bbox_loss.data.cpu().item()), length=10)
             # - mrcnn_mask_loss: {:.5f}
             # , mrcnn_mask_loss.data.cpu()[0]
 
