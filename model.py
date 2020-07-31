@@ -831,7 +831,7 @@ def refine_detections(rois, probs, deltas, window, config):
 
         class_keep = nms(torch.cat((ix_rois, ix_scores.unsqueeze(1)), dim=1).data, config.DETECTION_NMS_THRESHOLD)
 
-        # Map indicies
+        # Map indices
         class_keep = keep[ixs[order[class_keep].data].data]
 
         if i == 0:
@@ -1408,7 +1408,6 @@ class Dataset(torch.utils.data.Dataset):
 
         # If more instances than fits in the array, sub-sample from them.
         if gt_boxes.shape[0] > self.config.MAX_GT_INSTANCES:
-            print(gt_boxes)
             ids = np.random.choice(
                 np.arange(gt_boxes.shape[0]), self.config.MAX_GT_INSTANCES, replace=False)
             # gt_class_ids = gt_class_ids[ids]
@@ -1745,7 +1744,7 @@ class MaskRCNN(nn.Module):
             detections = detections.unsqueeze(0)
             # mrcnn_mask = mrcnn_mask.unsqueeze(0)
 
-            return [detections]  # , mrcnn_mask
+            return detections  # , mrcnn_mask
 
         elif mode == 'training':
 
