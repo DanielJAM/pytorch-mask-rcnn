@@ -24,7 +24,7 @@ class Config(object):
     # Name the configurations. For example, 'COCO', 'Experiment 3', ...etc.
     # Useful if your code needs to do things differently depending on which
     # experiment is running.
-    NAME = "5_e5_lr0.006_"  # Override in sub-classes
+    NAME = "5+_e50_mincf-0.7-"  # Override in sub-classes
 
     # Path to pretrained imagenet model
     IMAGENET_MODEL_PATH = os.path.join(os.getcwd(), "models/resnet50_imagenet.pth")
@@ -129,7 +129,7 @@ class Config(object):
 
     # Minimum probability value to accept a detected instance
     # ROIs below this threshold are skipped
-    DETECTION_MIN_CONFIDENCE = 0.3  # 0.9
+    DETECTION_MIN_CONFIDENCE = 0.7  # 0.9
 
     # Non-maximum suppression threshold for detection
     DETECTION_NMS_THRESHOLD = 0.3
@@ -165,6 +165,7 @@ class Config(object):
         # Input image size
         self.IMAGE_SHAPE = np.array(
             [self.IMAGE_MAX_DIM, self.IMAGE_MIN_DIM, 3])
+            # MAX, MAX
 
         # Compute backbone size from input image size
         self.BACKBONE_SHAPES = np.array(
@@ -179,3 +180,11 @@ class Config(object):
             if not a.startswith("__") and not callable(getattr(self, a)):
                 print("{:30} {}".format(a, getattr(self, a)))
         print("\n")
+
+    def to_txt(self, log_dir):
+        """Save Configuration values in text file."""
+        config_txt = open(os.path.join(log_dir + "/config.txt"), "x")
+        for a in dir(self):
+            if not a.startswith("__") and not callable(getattr(self, a)):
+                config_txt.write("{:30} {}".format(a, getattr(self, a)))
+            config_txt.write("\n")

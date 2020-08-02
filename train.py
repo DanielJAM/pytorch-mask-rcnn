@@ -32,7 +32,7 @@ import time
 import torch
 import visualize
 
-torch.backends.cudnn.benchmark = False  # Fails with True, probably due to Cuda 9.0 instead of 10.0
+torch.backends.cudnn.benchmark = False  # Fails with True, probably due to CUDA 9.0 instead of 10.0 icw RTX 2080Ti
 
 start_time = time.process_time()
 print("start time time(s): ", round(start_time, 2))
@@ -41,9 +41,9 @@ print("start time time(s): ", round(start_time, 2))
 config = config.Config()
 config.display()
 
-only_test = True
+ONLY_TEST = 0
 
-if not only_test:
+if not ONLY_TEST:
     # DATASET
     train_set = custom_dataset.LampPostDataset()
     train_set.load_dataset("../Master_Thesis_GvA_project/data/4_external", is_train=True)
@@ -52,9 +52,11 @@ if not only_test:
 test_set = custom_dataset.LampPostDataset()
 test_set.load_dataset("../Master_Thesis_GvA_project/data/4_external", is_train=False)
 test_set.prepare()
-if not only_test: print("Train: %d, Test: %d images" % (len(train_set.image_ids), len(test_set.image_ids)))
+if not ONLY_TEST: print("Train: %d, Test: %d images" % (len(train_set.image_ids), len(test_set.image_ids)))
 
-if not only_test:
+if not ONLY_TEST:
+    config.STEPS_PER_EPOCH = len(train_set.image_info)
+
     data_time = time.process_time()
     print("load data time(s): ", round(data_time - start_time, 2), "total elapsed: ", round(data_time, 2))
 
@@ -73,9 +75,12 @@ if not only_test:
     print("loading weights time(s): ", round(load_weights_time - load_model_time, 2), "total elapsed: ",
           round(load_weights_time, 2))
 
+    # Save final config before start training
+    config.to_txt(model.log_dir)
+
     # TRAIN MODEL
     # train heads with higher lr to speedup the learning
-    model.train_model(train_set, test_set, learning_rate=2 * config.LEARNING_RATE, epochs=5, layers='5+')
+    model.train_model(train_set, test_set, learning_rate=2 * config.LEARNING_RATE, epochs=50, layers='5+')
     #       heads: The RPN, classifier and mask heads of the network
     #       all: All the layers
     #       3+: Train Resnet stage 3 and up
@@ -85,6 +90,7 @@ if not only_test:
     train_time = time.process_time()
     print("training time(s): ", round(train_time - load_weights_time, 2), "total elapsed: ", round(train_time, 2))
 
+
 # TEST MODEL
 model = modellib.MaskRCNN(config=config, model_dir='./models')
 # loading the trained weights of the custom dataset
@@ -92,6 +98,9 @@ model.load_weights(model.find_last()[1])
 # img = io.imread("../Master_Thesis_GvA_project/data/4_external/TMX7316010203-000363_pano_0000_000600")
 # # detecting objects in the image
 # result = model.detect([img])
+
+# Delete test model log directory
+os.rmdir(model.log_dir)
 
 image_id = 3
 # 1 = TMX7316010203-001499_pano_0000_001233 - only a hanging lamp post
@@ -104,9 +113,6 @@ print("image ID: {}.{} ({}) {}".format(info["source"], info["id"], image_id,
                                        test_set.image_reference(image_id)))
 # Run object detection
 results = model.detect([image])
-
-# Delete log directory
-os.rmdir(model.log_dir)
 
 # Display results
 r = results[0]

@@ -812,14 +812,22 @@ def refine_detections(rois, probs, deltas, window, config):
     # Filter out low confidence boxes
     if config.DETECTION_MIN_CONFIDENCE:
         keep_bool = keep_bool & (class_scores >= config.DETECTION_MIN_CONFIDENCE)
-    keep = torch.nonzero(keep_bool)[:, 0]
+    if sum(keep_bool):
+        keep = torch.nonzero(keep_bool)[:, 0]
+    else:
+        keep = torch.nonzero(keep_bool)
+
+    # try:
+    #     keep = torch.nonzero(keep_bool)[:, 0]
+    # except:
+    #     raise Exception("No detections found with confidence %.2f" % config.DETECTION_MIN_CONFIDENCE)
 
     # Apply per-class NMS
     pre_nms_class_ids = class_ids[keep.data]
     pre_nms_scores = class_scores[keep.data]
     pre_nms_rois = refined_rois[keep.data]
 
-    for i, class_id in enumerate(unique1d(pre_nms_class_ids)):
+    for i, class_id in enumerate(unique1d(pre_nms_class_ids), 0):
         # Pick detections of this class
         ixs = torch.nonzero(pre_nms_class_ids == class_id)[:, 0]
 
