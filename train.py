@@ -15,7 +15,7 @@ print("start time time(s): ", round(start_time, 2))
 config = config.Config()
 config.display()
 
-ONLY_TEST = 0
+ONLY_TEST = 1
 STEPS_IS_LEN_TRAINSET = 0
 n_epochs = 5
 layer_string = "5+"
@@ -67,7 +67,8 @@ if not ONLY_TEST:
     model.train_model(train_set, test_set, learning_rate=2 * config.LEARNING_RATE, epochs=n_epochs, layers=layer_string)
 
     train_time = time.process_time()
-    print("training time(s): ", round(train_time - load_weights_time, 2), "total elapsed: ", round(train_time, 2))
+    print("training time(s): ", round((train_time - load_weights_time)/60, 2), "total minutes elapsed: ",
+          round(train_time, 2))
 
 # TEST MODEL
 model = modellib.MaskRCNN(config=config, model_dir='./models')
@@ -76,7 +77,7 @@ model = modellib.MaskRCNN(config=config, model_dir='./models')
 last_model = model.find_last()[1]
 # last_model = "./models/resnet50_imagenet.pth7"
 print("loading model: ", last_model)
-_ = model.load_weights(last_model)
+model.load_weights(last_model)
 
 # Delete test model log directory
 os.rmdir(model.log_dir)
@@ -89,6 +90,7 @@ image, image_meta, gt_class_id, gt_bbox = modellib.load_image_gt(test_set, confi
 info = test_set.image_info[image_id]
 print("image ID: {}.{} ({}) {}".format(info["source"], info["id"], image_id,
                                        test_set.image_reference(image_id)))
+
 # Run object detection
 results = model.detect([image])
 

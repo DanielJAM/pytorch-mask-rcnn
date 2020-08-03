@@ -6,5 +6,5 @@ logs/
 *.o
 pycocotools
 *_ext*
-/torch-0.4.0-cp36-cp36m-linux_x86_64.whl
+/*.whl
 /models
