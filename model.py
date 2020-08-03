@@ -776,88 +776,91 @@ def refine_detections(rois, probs, deltas, window, config):
     # Class IDs per ROI
     _, class_ids = torch.max(probs, dim=1)
 
-    # Class probability of the top class of each ROI
-    # Class-specific bounding box deltas
-    idx = torch.arange(class_ids.size()[0]).long()
-    if config.GPU_COUNT:
-        idx = idx.cuda()
-    class_scores = probs[idx, class_ids.data]
-    deltas_specific = deltas[idx, class_ids.data]
+    # If only background detected, skip everything
+    if sum(class_ids):
+        # Class probability of the top class of each ROI
+        # Class-specific bounding box deltas
+        idx = torch.arange(class_ids.size()[0]).long()
+        if config.GPU_COUNT:
+            idx = idx.cuda()
+        class_scores = probs[idx, class_ids.data]
+        deltas_specific = deltas[idx, class_ids.data]
 
-    # Apply bounding box deltas
-    # Shape: [boxes, (y1, x1, y2, x2)] in normalized coordinates
-    std_dev = Variable(torch.from_numpy(np.reshape(config.RPN_BBOX_STD_DEV, [1, 4])).float(), requires_grad=False)
-    if config.GPU_COUNT:
-        std_dev = std_dev.cuda()
-    refined_rois = apply_box_deltas(rois, deltas_specific * std_dev)
+        # Apply bounding box deltas
+        # Shape: [boxes, (y1, x1, y2, x2)] in normalized coordinates
+        std_dev = Variable(torch.from_numpy(np.reshape(config.RPN_BBOX_STD_DEV, [1, 4])).float(), requires_grad=False)
+        if config.GPU_COUNT:
+            std_dev = std_dev.cuda()
+        refined_rois = apply_box_deltas(rois, deltas_specific * std_dev)
 
-    # Convert coordinates to image domain
-    height, width = config.IMAGE_SHAPE[:2]
-    scale = Variable(torch.from_numpy(np.array([height, width, height, width])).float(), requires_grad=False)
-    if config.GPU_COUNT:
-        scale = scale.cuda()
-    refined_rois *= scale
+        # Convert coordinates to image domain
+        height, width = config.IMAGE_SHAPE[:2]
+        scale = Variable(torch.from_numpy(np.array([height, width, height, width])).float(), requires_grad=False)
+        if config.GPU_COUNT:
+            scale = scale.cuda()
+        refined_rois *= scale
 
-    # Clip boxes to image window
-    refined_rois = clip_to_window(window, refined_rois)
+        # Clip boxes to image window
+        refined_rois = clip_to_window(window, refined_rois)
 
-    # Round and cast to int since we're dealing with pixels now
-    refined_rois = torch.round(refined_rois)
+        # Round and cast to int since we're dealing with pixels now
+        refined_rois = torch.round(refined_rois)
 
-    # TODO: Filter out boxes with zero area
+        # TODO: Filter out boxes with zero area
 
-    # Filter out background boxes
-    keep_bool = class_ids > 0
+        # Filter out background boxes
+        keep_bool = class_ids > 0
 
-    # Filter out low confidence boxes
-    if config.DETECTION_MIN_CONFIDENCE:
-        keep_bool = keep_bool & (class_scores >= config.DETECTION_MIN_CONFIDENCE)
-    if sum(keep_bool):
+        # Filter out low confidence boxes
+        if config.DETECTION_MIN_CONFIDENCE:
+            keep_bool = keep_bool & (class_scores >= config.DETECTION_MIN_CONFIDENCE)
         keep = torch.nonzero(keep_bool)[:, 0]
+
+        # try:
+        #     keep = torch.nonzero(keep_bool)[:, 0]
+        # except:
+        #     raise Exception("No detections found with confidence %.2f" % config.DETECTION_MIN_CONFIDENCE)
+
+        # Apply per-class NMS
+        pre_nms_class_ids = class_ids[keep.data]
+        pre_nms_scores = class_scores[keep.data]
+        pre_nms_rois = refined_rois[keep.data]
+
+        for i, class_id in enumerate(unique1d(pre_nms_class_ids)):
+            # Pick detections of this class
+            ixs = torch.nonzero(pre_nms_class_ids == class_id)[:, 0]
+
+            # Sort
+            ix_rois = pre_nms_rois[ixs.data]
+            ix_scores = pre_nms_scores[ixs]
+            ix_scores, order = ix_scores.sort(descending=True)
+            ix_rois = ix_rois[order.data, :]
+
+            class_keep = nms(torch.cat((ix_rois, ix_scores.unsqueeze(1)), dim=1).data, config.DETECTION_NMS_THRESHOLD)
+
+            # Map indices
+            class_keep = keep[ixs[order[class_keep].data].data]
+
+            if i == 0:
+                nms_keep = class_keep
+            else:
+                nms_keep = unique1d(torch.cat((nms_keep, class_keep)))
+        keep = intersect1d(keep, nms_keep)
+
+        # Keep top detections
+        roi_count = config.DETECTION_MAX_INSTANCES
+        top_ids = class_scores[keep.data].sort(descending=True)[1][:roi_count]
+        keep = keep[top_ids.data]
+
+        # Arrange output as [N, (y1, x1, y2, x2, class_id, score)]
+        # Coordinates are in image domain.
+        result = torch.cat((refined_rois[keep.data],
+                            class_ids[keep.data].unsqueeze(1).float(),
+                            class_scores[keep.data].unsqueeze(1)), dim=1)
     else:
-        keep = torch.nonzero(keep_bool)
-
-    # try:
-    #     keep = torch.nonzero(keep_bool)[:, 0]
-    # except:
-    #     raise Exception("No detections found with confidence %.2f" % config.DETECTION_MIN_CONFIDENCE)
-
-    # Apply per-class NMS
-    pre_nms_class_ids = class_ids[keep.data]
-    pre_nms_scores = class_scores[keep.data]
-    pre_nms_rois = refined_rois[keep.data]
-
-    for i, class_id in enumerate(unique1d(pre_nms_class_ids), 0):
-        # Pick detections of this class
-        ixs = torch.nonzero(pre_nms_class_ids == class_id)[:, 0]
-
-        # Sort
-        ix_rois = pre_nms_rois[ixs.data]
-        ix_scores = pre_nms_scores[ixs]
-        ix_scores, order = ix_scores.sort(descending=True)
-        ix_rois = ix_rois[order.data, :]
-
-        class_keep = nms(torch.cat((ix_rois, ix_scores.unsqueeze(1)), dim=1).data, config.DETECTION_NMS_THRESHOLD)
-
-        # Map indices
-        class_keep = keep[ixs[order[class_keep].data].data]
-
-        if i == 0:
-            nms_keep = class_keep
-        else:
-            nms_keep = unique1d(torch.cat((nms_keep, class_keep)))
-    keep = intersect1d(keep, nms_keep)
-
-    # Keep top detections
-    roi_count = config.DETECTION_MAX_INSTANCES
-    top_ids = class_scores[keep.data].sort(descending=True)[1][:roi_count]
-    keep = keep[top_ids.data]
-
-    # Arrange output as [N, (y1, x1, y2, x2, class_id, score)]
-    # Coordinates are in image domain.
-    result = torch.cat((refined_rois[keep.data],
-                        class_ids[keep.data].unsqueeze(1).float(),
-                        class_scores[keep.data].unsqueeze(1)), dim=1)
+        result = torch.zeros(1, 6)
+        if config.GPU_COUNT:
+            result.cuda()
 
     return result
 
@@ -1401,8 +1404,8 @@ class Dataset(torch.utils.data.Dataset):
         image_id = self.image_ids[image_index]
         # , gt_masks
         image, image_metas, gt_class_ids, gt_boxes = \
-            load_image_gt(self.dataset, self.config, image_id, augment=self.augment,
-                          use_mini_mask=self.config.USE_MINI_MASK)
+            load_image_gt(self.dataset, self.config, image_id, augment=self.augment)
+            # use_mini_mask=self.config.USE_MINI_MASK
 
         # Skip images that have no instances. This can happen in cases
         # where we train on a subset of classes and the image doesn't

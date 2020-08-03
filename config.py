@@ -24,7 +24,7 @@ class Config(object):
     # Name the configurations. For example, 'COCO', 'Experiment 3', ...etc.
     # Useful if your code needs to do things differently depending on which
     # experiment is running.
-    NAME = "5+_e50_mincf-0.7-"  # Override in sub-classes
+    NAME = "Test_no-mask-config-"  # "5+_e50_mincf-0.7-"  # Override in sub-classes
 
     # Path to pretrained imagenet model
     IMAGENET_MODEL_PATH = os.path.join(os.getcwd(), "models/resnet50_imagenet.pth")
@@ -82,10 +82,10 @@ class Config(object):
     POST_NMS_ROIS_TRAINING = 2000
     POST_NMS_ROIS_INFERENCE = 1000
 
-    # If enabled, resizes instance masks to a smaller size to reduce
-    # memory load. Recommended when using high-resolution images.
-    USE_MINI_MASK = True
-    MINI_MASK_SHAPE = (56, 56)  # (height, width) of the mini-mask
+    # # If enabled, resizes instance masks to a smaller size to reduce
+    # # memory load. Recommended when using high-resolution images.
+    # USE_MINI_MASK = True
+    # MINI_MASK_SHAPE = (56, 56)  # (height, width) of the mini-mask
 
     # Input image resizing
     # Images are resized such that the smallest side is >= IMAGE_MIN_DIM and
@@ -114,8 +114,8 @@ class Config(object):
 
     # Pooled ROIs
     POOL_SIZE = 7
-    MASK_POOL_SIZE = 14
-    MASK_SHAPE = [28, 28]
+    # MASK_POOL_SIZE = 14
+    # MASK_SHAPE = [28, 28]
 
     # Maximum number of ground truth instances to use in one image
     MAX_GT_INSTANCES = 10  # 100
@@ -129,7 +129,7 @@ class Config(object):
 
     # Minimum probability value to accept a detected instance
     # ROIs below this threshold are skipped
-    DETECTION_MIN_CONFIDENCE = 0.7  # 0.9
+    DETECTION_MIN_CONFIDENCE = 0.3  # 0.9
 
     # Non-maximum suppression threshold for detection
     DETECTION_NMS_THRESHOLD = 0.3
