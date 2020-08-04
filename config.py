@@ -24,7 +24,7 @@ class Config(object):
     # Name the configurations. For example, 'COCO', 'Experiment 3', ...etc.
     # Useful if your code needs to do things differently depending on which
     # experiment is running.
-    NAME = "Test_no-mask-config-"  # "5+_e50_mincf-0.7-"  # Override in sub-classes
+    NAME = "Faster_RCNN-"  # "5+_e50_mincf-0.7-"  # Override in sub-classes
 
     # Path to pretrained imagenet model
     IMAGENET_MODEL_PATH = os.path.join(os.getcwd(), "models/resnet50_imagenet.pth")
@@ -45,7 +45,7 @@ class Config(object):
     # Validation stats are also calculated at each epoch end and they
     # might take a while, so don't set this too small to avoid spending
     # a lot of time on validation stats.
-    STEPS_PER_EPOCH = 1000
+    STEPS_PER_EPOCH = 317  # 1/10th of current train set
 
     # Number of validation steps to run at the end of every training epoch.
     # A bigger number improves accuracy of validation stats, but slows
@@ -98,7 +98,7 @@ class Config(object):
     IMAGE_PADDING = True  # currently, the False option is not supported
 
     # Image mean (RGB)
-    MEAN_PIXEL = np.array([129.1, 132.9, 133.7])  # old: 123.7, 116.8, 103.9
+    MEAN_PIXEL = np.array([123.7, 116.8, 103.9])  # old: 123.7, 116.8, 103.9  # new: 129.1, 132.9, 133.7
     # TMX7315080123-000281_pano_0000_000249 has 137.4, 137.8, 135.0
     # TMX7316010203-001192_pano_0002_000595.jpg has 129.1, 132.9, 133.7
 
@@ -129,7 +129,7 @@ class Config(object):
 
     # Minimum probability value to accept a detected instance
     # ROIs below this threshold are skipped
-    DETECTION_MIN_CONFIDENCE = 0.3  # 0.9
+    DETECTION_MIN_CONFIDENCE = 0.9  # 0.9
 
     # Non-maximum suppression threshold for detection
     DETECTION_NMS_THRESHOLD = 0.3
