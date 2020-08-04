@@ -13,7 +13,7 @@ def run(ONLY_TEST=1, STEPS_IS_LEN_TRAINSET=0, n_epochs=5, layer_string="5+", nam
         4+: Train Resnet stage 4 and up
         5+: Train Resnet stage 5 and up """
 
-    torch.backends.cudnn.benchmark = True  # Fails with True, probably due to CUDA 9.0 instead of 10.0 icw RTX 2080Ti
+    torch.backends.cudnn.benchmark = True
 
     start_time = time.process_time()
     print("start time time(s): ", round(start_time, 2))
