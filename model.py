@@ -91,7 +91,7 @@ def intersect1d(tensor1, tensor2):
 
 
 def log2(x):
-    """Implementatin of Log2. Pytorch doesn't have a native implemenation."""
+    """Implementation of Log2. Pytorch doesn't have a native implementation."""
     ln2 = Variable(torch.log(torch.FloatTensor([2.0])), requires_grad=False)
     if x.is_cuda:
         ln2 = ln2.cuda()
@@ -330,7 +330,7 @@ def clip_boxes(boxes, window):
     boxes: [N, 4] each col is y1, x1, y2, x2
     window: [4] in the form y1, x1, y2, x2
     """
-    boxes = torch.stack( \
+    boxes = torch.stack(
         [boxes[:, 0].clamp(float(window[0]), float(window[2])),
          boxes[:, 1].clamp(float(window[1]), float(window[3])),
          boxes[:, 2].clamp(float(window[0]), float(window[2])),
@@ -467,7 +467,7 @@ def pyramid_roi_align(inputs, pool_size, image_shape):
         # Keep track of which box is mapped to which level
         box_to_level.append(ix.data)
 
-        # Stop gradient propogation to ROI proposals
+        # Stop gradient propagation to ROI proposals
         level_boxes = level_boxes.detach()
 
         # Crop and Resize
@@ -575,17 +575,17 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):  # , gt_m
     # A crowd box in COCO is a bounding box around several instances. Exclude
     # them from training. A crowd box is given a negative class ID.
     if torch.nonzero(gt_class_ids < 0).size()[0]:
-        crowd_ix = torch.nonzero(gt_class_ids < 0)[:, 0]
+        # crowd_ix = torch.nonzero(gt_class_ids < 0)[:, 0]
         non_crowd_ix = torch.nonzero(gt_class_ids > 0)[:, 0]
-        crowd_boxes = gt_boxes[crowd_ix.data, :]
+        # crowd_boxes = gt_boxes[crowd_ix.data, :]
         # crowd_masks = gt_masks[crowd_ix.data, :, :]
         gt_class_ids = gt_class_ids[non_crowd_ix.data]
         gt_boxes = gt_boxes[non_crowd_ix.data, :]
         # gt_masks = gt_masks[non_crowd_ix.data, :]
 
         # Compute overlaps with crowd boxes [anchors, crowds]
-        crowd_overlaps = bbox_overlaps(proposals, crowd_boxes)
-        crowd_iou_max = torch.max(crowd_overlaps, dim=1)[0]
+        # crowd_overlaps = bbox_overlaps(proposals, crowd_boxes)
+        # crowd_iou_max = torch.max(crowd_overlaps, dim=1)[0]
         no_crowd_bool = True  # crowd_iou_max < 0.001
     else:
         no_crowd_bool = Variable(torch.ByteTensor(proposals.size()[0] * [True]), requires_grad=False)
@@ -832,7 +832,8 @@ def refine_detections(rois, probs, deltas, window, config):
                 ix_scores, order = ix_scores.sort(descending=True)
                 ix_rois = ix_rois[order.data, :]
 
-                class_keep = nms(torch.cat((ix_rois, ix_scores.unsqueeze(1)), dim=1).data, config.DETECTION_NMS_THRESHOLD)
+                class_keep = nms(torch.cat((ix_rois, ix_scores.unsqueeze(1)), dim=1).data,
+                                 config.DETECTION_NMS_THRESHOLD)
 
                 # Map indices
                 class_keep = keep[ixs[order[class_keep].data].data]
@@ -1047,7 +1048,7 @@ def compute_rpn_class_loss(rpn_match, rpn_class_logits):
     rpn_class_logits = rpn_class_logits[indices.data[:, 0], indices.data[:, 1], :]
     anchor_class = anchor_class[indices.data[:, 0], indices.data[:, 1]]
 
-    # Crossentropy loss
+    # Cross entropy loss
     loss = F.cross_entropy(rpn_class_logits, anchor_class)
 
     return loss
@@ -1057,7 +1058,7 @@ def compute_rpn_bbox_loss(target_bbox, rpn_match, rpn_bbox):
     """Return the RPN bounding box loss graph.
 
     target_bbox: [batch, max positive anchors, (dy, dx, log(dh), log(dw))].
-        Uses 0 padding to fill in unsed bbox deltas.
+        Uses 0 padding to fill in unused bbox deltas.
     rpn_match: [batch, anchors, 1]. Anchor match type. 1=positive,
                -1=negative, 0=neutral anchor.
     rpn_bbox: [batch, anchors, (dy, dx, log(dh), log(dw))]
@@ -1177,8 +1178,7 @@ def compute_losses(rpn_match, rpn_bbox, rpn_class_logits, rpn_pred_bbox, target_
 #  Data Generator
 ############################################################
 
-def load_image_gt(dataset, config, image_id, augment=False,
-                  use_mini_mask=False):
+def load_image_gt(dataset, config, image_id, augment=False):  # use_mini_mask=False
     """Load and return ground truth data for an image (image, mask, bounding boxes).
 
     augment: If true, apply random image augmentation. Currently, only
@@ -1238,7 +1238,7 @@ def load_image_gt(dataset, config, image_id, augment=False,
     return image, image_meta, class_ids, bbox  # , mask
 
 
-def build_rpn_targets(image_shape, anchors, gt_class_ids, gt_boxes, config):
+def build_rpn_targets(anchors, gt_class_ids, gt_boxes, config):  # image_shape
     """Given the anchors and GT boxes, compute overlaps and identify positive
     anchors and deltas to refine them to match their corresponding GT boxes.
 
@@ -1264,7 +1264,7 @@ def build_rpn_targets(image_shape, anchors, gt_class_ids, gt_boxes, config):
         # Filter out crowds from ground truth class IDs and boxes
         non_crowd_ix = np.where(gt_class_ids > 0)[0]
         crowd_boxes = gt_boxes[crowd_ix]
-        gt_class_ids = gt_class_ids[non_crowd_ix]
+        # gt_class_ids = gt_class_ids[non_crowd_ix]
         gt_boxes = gt_boxes[non_crowd_ix]
         # Compute overlaps with crowd boxes [anchors, crowds]
         crowd_overlaps = utils.compute_overlaps(anchors, crowd_boxes)
@@ -1289,7 +1289,7 @@ def build_rpn_targets(image_shape, anchors, gt_class_ids, gt_boxes, config):
     # matched to them. Skip boxes in crowd areas.
     anchor_iou_argmax = np.argmax(overlaps, axis=1)
     anchor_iou_max = overlaps[np.arange(overlaps.shape[0]), anchor_iou_argmax]
-    rpn_match[(anchor_iou_max < 0.3) & (no_crowd_bool)] = -1
+    rpn_match[(anchor_iou_max < 0.3) & no_crowd_bool] = -1
     # 2. Set an anchor for each GT box (regardless of IoU value).
     # TODO: If multiple anchors have the same IoU match all of them
     gt_iou_argmax = np.argmax(overlaps, axis=0)
@@ -1318,7 +1318,7 @@ def build_rpn_targets(image_shape, anchors, gt_class_ids, gt_boxes, config):
     # to match the corresponding GT boxes.
     ids = np.where(rpn_match == 1)[0]
     ix = 0  # index into rpn_bbox
-    # TODO: use box_refinment() rather than duplicating the code here
+    # TODO: use box_refinement() rather than duplicating the code here
     for i, a in zip(ids, anchors[ids]):
         # Closest gt box (it might have IoU < 0.7)
         gt = gt_boxes[anchor_iou_argmax[i]]
@@ -1516,7 +1516,8 @@ class MaskRCNN(nn.Module):
         def set_bn_fix(m):
             classname = m.__class__.__name__
             if classname.find('BatchNorm') != -1:
-                for p in m.parameters(): p.requires_grad = False
+                for p in m.parameters():
+                    p.requires_grad = False
 
         self.apply(set_bn_fix)
 
@@ -1536,7 +1537,7 @@ class MaskRCNN(nn.Module):
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
 
-    def set_trainable(self, layer_regex, model=None, indent=0, verbose=1):
+    def set_trainable(self, layer_regex):  # , model=None, indent=0, verbose=1
         """Sets model layers as trainable if their names match
         the given regular expression.
         """
@@ -1777,12 +1778,12 @@ class MaskRCNN(nn.Module):
 
             if not rois.size()[0]:
                 mrcnn_class_logits = Variable(torch.FloatTensor())
-                mrcnn_class = Variable(torch.IntTensor())
+                # mrcnn_class = Variable(torch.IntTensor())
                 mrcnn_bbox = Variable(torch.FloatTensor())
                 # mrcnn_mask = Variable(torch.FloatTensor())
                 if self.config.GPU_COUNT:
                     mrcnn_class_logits = mrcnn_class_logits.cuda()
-                    mrcnn_class = mrcnn_class.cuda()
+                    # mrcnn_class = mrcnn_class.cuda()
                     mrcnn_bbox = mrcnn_bbox.cuda()
                     # mrcnn_mask = mrcnn_mask.cuda()
             else:
@@ -2098,7 +2099,7 @@ class MaskRCNN(nn.Module):
 
     def unmold_detections(self, detections, image_shape, window):
         # mrcnn_mask,
-        """Reformats the detections of one image from the format of the neural
+        """Reformat the detections of one image from the format of the neural
         network output to a format suitable for use in the rest of the
         application.
 
@@ -2145,7 +2146,7 @@ class MaskRCNN(nn.Module):
             class_ids = np.delete(class_ids, exclude_ix, axis=0)
             scores = np.delete(scores, exclude_ix, axis=0)
             # masks = np.delete(masks, exclude_ix, axis=0)
-            N = class_ids.shape[0]
+            # N = class_ids.shape[0]
 
         # Resize masks to original image size and set boundary threshold.
         # full_masks = []
@@ -2178,7 +2179,7 @@ def compose_image_meta(image_id, image_shape, window, active_class_ids):
     meta = np.array(
         [image_id] +  # size=1
         list(image_shape) +  # size=3
-        list(window) +  # size=4 (y1, x1, y2, x2) in image cooredinates
+        list(window) +  # size=4 (y1, x1, y2, x2) in image coordinates
         list(active_class_ids)  # size=num_classes
     )
     return meta

@@ -6,12 +6,15 @@ import torch
 import visualize
 
 
-def run(ONLY_TEST=1, STEPS_IS_LEN_TRAINSET=0, n_epochs=5, layer_string="5+", name="Faster_RCNN-"):
+def run(img_dir, annos_dir, ONLY_TEST=1, STEPS_IS_LEN_TRAIN_SET=0, n_epochs=5, layer_string="5+", name="Faster_RCNN-"):
     """ heads: The RPN, classifier and mask heads of the network
         all: All the layers
         3+: Train Resnet stage 3 and up
         4+: Train Resnet stage 4 and up
-        5+: Train Resnet stage 5 and up """
+        5+: Train Resnet stage 5 and up
+
+        img_dir: path to directory containing images
+        annos_dir: path to directory containing annotations """
 
     torch.backends.cudnn.benchmark = True
 
@@ -24,20 +27,20 @@ def run(ONLY_TEST=1, STEPS_IS_LEN_TRAINSET=0, n_epochs=5, layer_string="5+", nam
     config.NAME = name
     config.display()
 
-    if not ONLY_TEST:
-        # DATASET
-        train_set = custom_dataset.LampPostDataset()
-        train_set.load_dataset("../Master_Thesis_GvA_project/data/4_external", is_train=True)
-        train_set.prepare()
-
+    # TEST SET
     test_set = custom_dataset.LampPostDataset()
-    test_set.load_dataset("../Master_Thesis_GvA_project/data/4_external", is_train=False)
+    test_set.load_dataset(img_dir, annos_dir, is_train=False)
     test_set.prepare()
 
     if not ONLY_TEST:
+        # TRAINING SET
+        train_set = custom_dataset.LampPostDataset()
+        train_set.load_dataset(img_dir, annos_dir, is_train=True)
+        train_set.prepare()
+
         print("Train: %d, Test: %d images" % (len(train_set.image_ids), len(test_set.image_ids)))
 
-        if STEPS_IS_LEN_TRAINSET:
+        if STEPS_IS_LEN_TRAIN_SET:
             config.STEPS_PER_EPOCH = len(train_set.image_info)
 
         data_time = time.process_time()

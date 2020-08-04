@@ -8,13 +8,15 @@ from xml.etree import ElementTree
 
 class LampPostDataset(Dataset):
 
-    def load_dataset(self, data_dir, is_train=True):
+    def load_dataset(self, img_dir, annos_dir, is_train=True):
         self.add_class("dataset", 1, "lamp post")
 
         # images_dir = "../Master_Thesis_GvA_project/data/examples/images/"
-        images_dir = data_dir + '/PanorAMS_panoramas_GT/'
+        # images_dir = data_dir + '/PanorAMS_panoramas_GT/'
+        images_dir = img_dir
         # annotations_dir = "../Master_Thesis_GvA_project/data/examples/examples_voc/lamp_post/"
-        annotations_dir = data_dir + '/PanorAMS_GT_pascal-VOC-absolute/'
+        # annotations_dir = data_dir + '/PanorAMS_GT_pascal-VOC-absolute/'
+        annotations_dir = annos_dir
 
         images = os.listdir(images_dir)
         annots = os.listdir(annotations_dir)
@@ -63,7 +65,6 @@ class LampPostDataset(Dataset):
         # height = int(root.find('.//size/height').text)
 
         return boxes.astype(np.int32)
-
 
     # Return the path of the image
     def image_reference(self, image_id):

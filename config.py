@@ -72,13 +72,13 @@ class Config(object):
     RPN_ANCHOR_STRIDE = 1
 
     # Non-max suppression threshold to filter RPN proposals.
-    # You can reduce this during training to generate more propsals.
+    # You can reduce this during training to generate more proposals.
     RPN_NMS_THRESHOLD = 0.7
 
     # How many anchors per image to use for RPN training
     RPN_TRAIN_ANCHORS_PER_IMAGE = 256
 
-    # ROIs kept after non-maximum supression (training and inference)
+    # ROIs kept after non-maximum suppression (training and inference)
     POST_NMS_ROIS_TRAINING = 2000
     POST_NMS_ROIS_INFERENCE = 1000
 
@@ -136,7 +136,7 @@ class Config(object):
 
     # Learning rate and momentum
     # The Mask RCNN paper uses lr=0.02, but on TensorFlow it causes
-    # weights to explode. Likely due to differences in optimzer
+    # weights to explode. Likely due to differences in optimiser
     # implementation.
     LEARNING_RATE = 0.006  # 0.001
     LEARNING_MOMENTUM = 0.9

@@ -14,6 +14,7 @@ import colorsys
 import numpy as np
 from skimage.measure import find_contours
 import matplotlib.pyplot as plt
+
 if "DISPLAY" not in os.environ:
     plt.switch_backend('agg')
 import matplotlib.patches as patches
@@ -35,7 +36,7 @@ def display_images(images, titles=None, cols=4, cmap=None, norm=None,
     cols: number of images per row
     cmap: Optional. Color map to use. For example, "Blues".
     norm: Optional. A Normalize instance to map values to colors.
-    interpolation: Optional. Image interporlation to use for display.
+    interpolation: Optional. Image interpolation to use for display.
     """
     titles = titles if titles is not None else [""] * len(images)
     rows = len(images) // cols + 1
@@ -126,7 +127,7 @@ def display_instances(image, boxes, class_ids, class_names,
         class_id = class_ids[i]
         score = scores[i] if scores is not None else None
         label = class_names[class_id]
-        x = random.randint(x1, (x1 + x2) // 2)
+        # x = random.randint(x1, (x1 + x2) // 2)
         caption = "{} {:.3f}".format(label, score) if score else label
         ax.text(x1, y1 + 8, caption,
                 color='w', size=11, backgroundcolor="none")
@@ -148,7 +149,7 @@ def display_instances(image, boxes, class_ids, class_names,
     #         ax.add_patch(p)
     ax.imshow(masked_image.astype(np.uint8))
     plt.show()
-    
+
 
 def draw_rois(image, rois, refined_rois, mask, class_ids, class_names, limit=10):
     """
@@ -174,18 +175,18 @@ def draw_rois(image, rois, refined_rois, mask, class_ids, class_names, limit=10)
     ax.set_xlim(-50, image.shape[1] + 20)
     ax.axis('off')
 
-    for i, id in enumerate(ids):
+    for i, roi_id in enumerate(ids):
         color = np.random.rand(3)
-        class_id = class_ids[id]
+        class_id = class_ids[roi_id]
         # ROI
-        y1, x1, y2, x2 = rois[id]
+        y1, x1, y2, x2 = rois[roi_id]
         p = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=2,
                               edgecolor=color if class_id else "gray",
                               facecolor='none', linestyle="dashed")
         ax.add_patch(p)
         # Refined ROI
         if class_id:
-            ry1, rx1, ry2, rx2 = refined_rois[id]
+            ry1, rx1, ry2, rx2 = refined_rois[roi_id]
             p = patches.Rectangle((rx1, ry1), rx2 - rx1, ry2 - ry1, linewidth=2,
                                   edgecolor=color, facecolor='none')
             ax.add_patch(p)
@@ -198,8 +199,7 @@ def draw_rois(image, rois, refined_rois, mask, class_ids, class_names, limit=10)
                     color='w', size=11, backgroundcolor="none")
 
             # Mask
-            m = utils.unmold_mask(mask[id], rois[id]
-                                  [:4].astype(np.int32), image.shape)
+            m = utils.unmold_mask(mask[roi_id], rois[roi_id][:4].astype(np.int32), image.shape)
             masked_image = apply_mask(masked_image, m, color)
 
     ax.imshow(masked_image)
@@ -268,7 +268,7 @@ def plot_overlaps(gt_class_ids, pred_class_ids, pred_scores,
     gt_class_ids: [N] int. Ground truth class IDs
     pred_class_id: [N] int. Predicted class IDs
     pred_scores: [N] float. The probability scores of predicted classes
-    overlaps: [pred_boxes, gt_boxes] IoU overlaps of predictins and GT boxes.
+    overlaps: [pred_boxes, gt_boxes] IoU overlaps of predictions and GT boxes.
     class_names: list of all class names in the dataset
     threshold: Float. The prediction probability required to predict a class
     """
@@ -278,10 +278,10 @@ def plot_overlaps(gt_class_ids, pred_class_ids, pred_scores,
     plt.figure(figsize=(12, 10))
     plt.imshow(overlaps, interpolation='nearest', cmap=plt.cm.Blues)
     plt.yticks(np.arange(len(pred_class_ids)),
-               ["{} ({:.2f})".format(class_names[int(id)], pred_scores[i])
-                for i, id in enumerate(pred_class_ids)])
+               ["{} ({:.2f})".format(class_names[int(pred_class_id)], pred_scores[i])
+                for i, pred_class_id in enumerate(pred_class_ids)])
     plt.xticks(np.arange(len(gt_class_ids)),
-               [class_names[int(id)] for id in gt_class_ids], rotation=90)
+               [class_names[int(gt_class_id)] for gt_class_id in gt_class_ids], rotation=90)
 
     thresh = overlaps.max() / 2.
     for i, j in itertools.product(range(overlaps.shape[0]),
@@ -289,9 +289,8 @@ def plot_overlaps(gt_class_ids, pred_class_ids, pred_scores,
         text = ""
         if overlaps[i, j] > threshold:
             text = "match" if gt_class_ids[j] == pred_class_ids[i] else "wrong"
-        color = ("white" if overlaps[i, j] > thresh
-                 else "black" if overlaps[i, j] > 0
-                 else "grey")
+        color = ("white" if overlaps[i, j] > thresh else "black"
+                 if overlaps[i, j] > 0 else "grey")
         plt.text(j, i, "{:.3f}\n{}".format(overlaps[i, j], text),
                  horizontalalignment="center", verticalalignment="center",
                  fontsize=9, color=color)
@@ -304,7 +303,7 @@ def plot_overlaps(gt_class_ids, pred_class_ids, pred_scores,
 def draw_boxes(image, boxes=None, refined_boxes=None,
                masks=None, captions=None, visibilities=None,
                title="", ax=None):
-    """Draw bounding boxes and segmentation masks with differnt
+    """Draw bounding boxes and segmentation masks with different
     customizations.
 
     boxes: [N, (y1, x1, y2, x2, class_id)] in image coordinates.
@@ -313,7 +312,7 @@ def draw_boxes(image, boxes=None, refined_boxes=None,
     masks: [N, height, width]
     captions: List of N titles to display on each box
     visibilities: (optional) List of values of 0, 1, or 2. Determine how
-        prominant each bounding box should be.
+        prominent each bounding box should be.
     title: An optional title to show over the image
     ax: (optional) Matplotlib axis to draw on.
     """
@@ -380,7 +379,7 @@ def draw_boxes(image, boxes=None, refined_boxes=None,
             # If there are refined boxes, display captions on them
             if refined_boxes is not None:
                 y1, x1, y2, x2 = ry1, rx1, ry2, rx2
-            x = random.randint(x1, (x1 + x2) // 2)
+            # x = random.randint(x1, (x1 + x2) // 2)
             ax.text(x1, y1, caption, size=11, verticalalignment='top',
                     color='w', backgroundcolor="none",
                     bbox={'facecolor': color, 'alpha': 0.5,
@@ -402,6 +401,7 @@ def draw_boxes(image, boxes=None, refined_boxes=None,
                 p = Polygon(verts, facecolor="none", edgecolor=color)
                 ax.add_patch(p)
     ax.imshow(masked_image.astype(np.uint8))
+
 
 def plot_loss(loss, val_loss, save=True, log_dir=None):
     loss = np.array(loss)
@@ -490,5 +490,3 @@ def plot_loss(loss, val_loss, save=True, log_dir=None):
     # else:
     #     plt.show(block=False)
     #     plt.pause(0.1)
-
-
