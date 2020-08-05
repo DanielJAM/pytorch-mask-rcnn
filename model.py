@@ -1410,8 +1410,7 @@ class Dataset(torch.utils.data.Dataset):
             return None
 
         # RPN Targets
-        rpn_match, rpn_bbox = build_rpn_targets(image.shape, self.anchors,
-                                                gt_class_ids, gt_boxes, self.config)
+        rpn_match, rpn_bbox = build_rpn_targets(self.anchors, gt_class_ids, gt_boxes, self.config)  # image.shape,
 
         # If more instances than fits in the array, sub-sample from them.
         if gt_boxes.shape[0] > self.config.MAX_GT_INSTANCES:
