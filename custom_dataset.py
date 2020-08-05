@@ -11,15 +11,8 @@ class LampPostDataset(Dataset):
     def load_dataset(self, img_dir, annos_dir, is_train=True):
         self.add_class("dataset", 1, "lamp post")
 
-        # images_dir = "../Master_Thesis_GvA_project/data/examples/images/"
-        # images_dir = data_dir + '/PanorAMS_panoramas_GT/'
-        images_dir = img_dir
-        # annotations_dir = "../Master_Thesis_GvA_project/data/examples/examples_voc/lamp_post/"
-        # annotations_dir = data_dir + '/PanorAMS_GT_pascal-VOC-absolute/'
-        annotations_dir = annos_dir
-
-        images = os.listdir(images_dir)
-        annots = os.listdir(annotations_dir)
+        images = os.listdir(img_dir)
+        annots = os.listdir(annos_dir)
         for i, filename in tqdm(enumerate(images)):
             image_id = filename[:-4]
 
@@ -34,10 +27,10 @@ class LampPostDataset(Dataset):
                     continue
 
                 # setting image file
-                img_path = images_dir + filename
+                img_path = img_dir + filename
 
                 # setting annotations file
-                ann_path = annotations_dir + image_id + '.xml'
+                ann_path = annos_dir + image_id + '.xml'
 
                 # adding images and annotations to dataset
                 self.add_image('dataset', image_id=image_id, path=img_path, annotation=ann_path)
@@ -59,10 +52,6 @@ class LampPostDataset(Dataset):
             ymax = int(box.find('ymax').text)
             coors = np.array([xmin, ymin, xmax, ymax])
             boxes[i] = coors
-
-        # extract image dimensions
-        # width = int(root.find('.//size/width').text)
-        # height = int(root.find('.//size/height').text)
 
         return boxes.astype(np.int32)
 
