@@ -164,7 +164,7 @@ class Config(object):
 
         # Input image size
         self.IMAGE_SHAPE = np.array(
-            [self.IMAGE_MAX_DIM, self.IMAGE_MIN_DIM, 3])
+            [self.IMAGE_MAX_DIM, self.IMAGE_MAX_DIM, 3])
             # MAX, MAX
 
         # Compute backbone size from input image size

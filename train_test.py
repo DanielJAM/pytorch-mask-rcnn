@@ -90,7 +90,7 @@ def run(img_dir, annos_dir, ONLY_TEST=1, STEPS_IS_LEN_TRAIN_SET=0, n_epochs=5, l
     # 1 = TMX7316010203-001499_pano_0000_001233 - only a hanging lamp post
     # 2 = TMX7316010203-001209_pano_0000_002760 - on the right, behind/above blue car
     # 3 = TMX7316010203-001187_pano_0000_002097 - clearly in the middle (old one) and further down the road on the right
-    image, image_meta, gt_class_id, gt_bbox = modellib.load_image_gt(test_set, config, image_id, use_mini_mask=False)
+    image, image_meta, gt_class_id, gt_bbox = modellib.load_image_gt(test_set, config, image_id)
     info = test_set.image_info[image_id]
     print("image ID: {}.{} ({}) {}".format(info["source"], info["id"], image_id,
                                            test_set.image_reference(image_id)))
