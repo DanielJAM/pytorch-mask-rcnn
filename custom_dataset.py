@@ -35,8 +35,30 @@ class LampPostDataset(Dataset):
                 # adding images and annotations to dataset
                 self.add_image('dataset', image_id=image_id, path=img_path, annotation=ann_path)
 
-    # extract bounding boxes from an annotation file
-    def extract_bboxes(self, image_id):
+    def extract_bboxes_VOC(self, image_id):
+        """ Extract bounding boxes from a 'Pascal VOC'-format annotation file
+        """
+        filename = self.source_annotation_link(image_id)
+        # load and parse the file
+        tree = filename
+        # get the root of the document
+        root = tree.getroot()
+        # extract each bounding box
+        box_annos = root.findall('.//bndbox')
+        boxes = np.zeros([len(box_annos), 4], dtype=np.int32)
+        for i, box in enumerate(box_annos):
+            xmin = int(box.find('xmin').text)
+            ymin = int(box.find('ymin').text)
+            xmax = int(box.find('xmax').text)
+            ymax = int(box.find('ymax').text)
+            coors = np.array([xmin, ymin, xmax, ymax])
+            boxes[i] = coors
+
+        return boxes.astype(np.int32)
+
+    def extract_bboxes_coco(self, image_id):
+        """ Extract bounding boxes from a 'Pascal VOC'-format annotation file
+        """
         filename = self.source_annotation_link(image_id)
         # load and parse the file
         tree = ElementTree.parse(filename)
