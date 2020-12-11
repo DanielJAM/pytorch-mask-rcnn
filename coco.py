@@ -107,7 +107,7 @@ class CocoDataset(utils.Dataset):
         coco = COCO("{}/GT_{}_set.json".format(dataset_dir, subset))
         if subset == "minival" or subset == "valminusminival":
             subset = "val"
-        image_dir = "{}/{}".format(dataset_dir, subset)
+        image_dir = "{}/{}".format(dataset_dir, "PanorAMS_panoramas_GT/")
 
         # Load all classes or a subset?
         if not class_ids:
@@ -133,7 +133,7 @@ class CocoDataset(utils.Dataset):
         for i in image_ids:
             self.add_image(
                 "coco", image_id=i,
-                path=os.path.join(image_dir, coco.imgs[i]['file_name']),
+                path=coco.imgs[i]['file_name'],
                 width=coco.imgs[i]["width"],
                 height=coco.imgs[i]["height"],
                 annotations=coco.loadAnns(coco.getAnnIds(
@@ -340,12 +340,12 @@ if __name__ == '__main__':
     if args.command == "train":
         # Training dataset
         dataset_train = CocoDataset()
-        dataset_train.load_coco(args.dataset, "train", class_ids=["lamp post"])     # otherwise loads all Coco class ids
+        dataset_train.load_coco(args.dataset, "training")  # otherwise loads all Coco class ids
         dataset_train.prepare()
 
         # Validation dataset
         dataset_val = CocoDataset()
-        dataset_val.load_coco(args.dataset, "validation", class_ids=["lamp post"])
+        dataset_val.load_coco(args.dataset, "validation")
         dataset_val.prepare()
 
         # *** This training schedule is an example. Update to your needs ***
@@ -376,7 +376,7 @@ if __name__ == '__main__':
     elif args.command == "evaluate":
         # Validation dataset
         dataset_val = CocoDataset()
-        coco = dataset_val.load_coco(args.dataset, "validation", class_ids=["lamp post"], return_coco=True)
+        coco = dataset_val.load_coco(args.dataset, "validation", return_coco=True)
         dataset_val.prepare()
         print("Running COCO evaluation on {} images.".format(args.limit))
         evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))
