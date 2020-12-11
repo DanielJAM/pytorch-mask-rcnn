@@ -45,7 +45,7 @@ class Config(object):
     # Validation stats are also calculated at each epoch end and they
     # might take a while, so don't set this too small to avoid spending
     # a lot of time on validation stats.
-    STEPS_PER_EPOCH = 1000  # possibly set to 1/10th of current train set
+    STEPS_PER_EPOCH = 1000  # possibly set to 1/10th of current train set: 797
 
     # Number of validation steps to run at the end of every training epoch.
     # A bigger number improves accuracy of validation stats, but slows

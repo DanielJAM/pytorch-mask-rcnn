@@ -62,6 +62,7 @@ COCO_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.pth")
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
 DEFAULT_DATASET_YEAR = "2014"
 
+
 ############################################################
 #  Configurations
 ############################################################
@@ -72,17 +73,17 @@ class CocoConfig(Config):
     to the COCO dataset.
     """
     # Give the configuration a recognizable name
-    NAME = "coco"
+    NAME = "PanorAMS"
 
     # We use one GPU with 8GB memory, which can fit one image.
     # Adjust down if you use a smaller GPU.
-    IMAGES_PER_GPU = 16
+    IMAGES_PER_GPU = 1
 
     # Uncomment to train on 8 GPUs (default is 1)
     # GPU_COUNT = 8
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 80  # COCO has 80 classes
+    NUM_CLASSES = 1 + 1  # COCO has 80 classes
 
 
 ############################################################
@@ -442,6 +443,8 @@ if __name__ == '__main__':
             GPU_COUNT = 1
             IMAGES_PER_GPU = 1
             DETECTION_MIN_CONFIDENCE = 0
+
+
         config = InferenceConfig()
     config.display()
 
@@ -493,30 +496,31 @@ if __name__ == '__main__':
         # Training - Stage 1
         print("Training network heads")
         model.train_model(dataset_train, dataset_val,
-                    learning_rate=config.LEARNING_RATE,
-                    epochs=40,
-                    layers='heads')
+                          learning_rate=config.LEARNING_RATE,
+                          epochs=40,
+                          layers='heads')
 
         # Training - Stage 2
         # Finetune layers from ResNet stage 4 and up
         print("Fine tune Resnet stage 4 and up")
         model.train_model(dataset_train, dataset_val,
-                    learning_rate=config.LEARNING_RATE,
-                    epochs=120,
-                    layers='4+')
+                          learning_rate=config.LEARNING_RATE,
+                          epochs=120,
+                          layers='4+')
 
         # Training - Stage 3
         # Fine tune all layers
         print("Fine tune all layers")
         model.train_model(dataset_train, dataset_val,
-                    learning_rate=config.LEARNING_RATE / 10,
-                    epochs=160,
-                    layers='all')
+                          learning_rate=config.LEARNING_RATE / 10,
+                          epochs=160,
+                          layers='all')
 
     elif args.command == "evaluate":
         # Validation dataset
         dataset_val = CocoDataset()
-        coco = dataset_val.load_coco(args.dataset, "minival", year=args.year, return_coco=True, auto_download=args.download)
+        coco = dataset_val.load_coco(args.dataset, "minival", year=args.year, return_coco=True,
+                                     auto_download=args.download)
         dataset_val.prepare()
         print("Running COCO evaluation on {} images.".format(args.limit))
         evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))
