@@ -1,3 +1,8 @@
+"""
+@Daniel Maaskant
+"""
+
+
 import custom_dataset
 import model as modellib
 import os
