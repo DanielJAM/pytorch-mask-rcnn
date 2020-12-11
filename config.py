@@ -45,7 +45,7 @@ class Config(object):
     # Validation stats are also calculated at each epoch end and they
     # might take a while, so don't set this too small to avoid spending
     # a lot of time on validation stats.
-    STEPS_PER_EPOCH = 317  # 1/10th of current train set
+    STEPS_PER_EPOCH = 1000  # possibly set to 1/10th of current train set
 
     # Number of validation steps to run at the end of every training epoch.
     # A bigger number improves accuracy of validation stats, but slows
@@ -125,11 +125,11 @@ class Config(object):
     BBOX_STD_DEV = np.array([0.1, 0.1, 0.2, 0.2])
 
     # Max number of final detections
-    DETECTION_MAX_INSTANCES = 10  # 100
+    DETECTION_MAX_INSTANCES = 100  # 100
 
     # Minimum probability value to accept a detected instance
     # ROIs below this threshold are skipped
-    DETECTION_MIN_CONFIDENCE = 0.9  # 0.9
+    DETECTION_MIN_CONFIDENCE = 0.7  # 0.9
 
     # Non-maximum suppression threshold for detection
     DETECTION_NMS_THRESHOLD = 0.3
@@ -138,7 +138,7 @@ class Config(object):
     # The Mask RCNN paper uses lr=0.02, but on TensorFlow it causes
     # weights to explode. Likely due to differences in optimiser
     # implementation.
-    LEARNING_RATE = 0.006  # 0.001
+    LEARNING_RATE = 0.001  # 0.001 / 0.00001
     LEARNING_MOMENTUM = 0.9
 
     # Weight decay regularization
@@ -164,7 +164,7 @@ class Config(object):
 
         # Input image size
         self.IMAGE_SHAPE = np.array(
-            [self.IMAGE_MAX_DIM, self.IMAGE_MAX_DIM, 3])
+            [self.IMAGE_MAX_DIM, self.IMAGE_MIN_DIM, 3])
             # MAX, MAX
 
         # Compute backbone size from input image size

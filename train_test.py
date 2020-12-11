@@ -78,8 +78,8 @@ def run(img_dir, annos_dir, ONLY_TEST=1, STEPS_IS_LEN_TRAIN_SET=0, n_epochs=5, l
     model = modellib.MaskRCNN(config=config, model_dir='./models')
 
     # loading the trained weights of the custom dataset
-    last_model = model.find_last()[1]
-    # last_model = "./models/resnet50_imagenet.pth7"
+    # last_model = model.find_last()[1]
+    last_model = "./models/resnet50_imagenet.pth"
     print("loading model: ", last_model)
     model.load_weights(last_model)
 
