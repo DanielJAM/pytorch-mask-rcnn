@@ -127,12 +127,12 @@ class CocoDataset(utils.Dataset):
 
         # Add classes
         for i in class_ids:
-            self.add_class("coco", i, coco.loadCats(i)[0]["name"])
+            self.add_class("PanorAMS", i, coco.loadCats(i)[0]["name"])
 
         # Add images
         for i in image_ids:
             self.add_image(
-                "coco", image_id=i,
+                "PanorAMS", image_id=i,
                 path=coco.imgs[i]['file_name'],
                 width=coco.imgs[i]["width"],
                 height=coco.imgs[i]["height"],
