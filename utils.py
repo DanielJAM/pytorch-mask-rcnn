@@ -48,6 +48,28 @@ def extract_bboxes(mask):
         boxes[i] = np.array([y1, x1, y2, x2])
     return boxes.astype(np.int32)
 
+def extract_bboxes_coco(image_info):
+    """ Extract bounding boxes from a 'COCO'-format annotation file
+    """
+    # extract each bounding box
+    box_annos = image_info['annotations']
+    boxes = np.zeros([len(box_annos), 4], dtype=np.int32)
+    class_ids = np.zeros([len(box_annos)], dtype=np.int32)
+    # class_ids = np.zeros([1], dtype=np.int32)
+    for i, box in enumerate(box_annos):
+        xmin = box['bbox'][0]
+        ymin = box['bbox'][1]
+        xmax = xmin + box['bbox'][2]
+        ymax = ymin + box['bbox'][3]
+        coors = np.array([xmin, ymin, xmax, ymax])
+        boxes[i] = coors
+
+        # get class_ids of boxes
+        class_ids[i] = box['category_id']
+        # class_ids[0] += box['category_id']
+
+    return boxes.astype(np.int32), class_ids.astype(np.int32)
+
 
 def compute_iou(box, boxes, box_area, boxes_area):
     """Calculates IoU of the given box with the array of the given boxes.
@@ -254,24 +276,6 @@ class Dataset(object):
         if image.ndim != 3:
             image = skimage.color.gray2rgb(image)
         return image
-
-    def load_mask(self, image_id):
-        """Load instance masks for the given image.
-
-        Different datasets use different ways to store masks. Override this
-        method to load instance masks and return them in the form of am
-        array of binary masks of shape [height, width, instances].
-
-        Returns:
-            masks: A bool array of shape [height, width, instance count] with
-                a binary mask per instance.
-            class_ids: a 1D array of class IDs of the instance masks.
-        """
-        # Override this function to load a mask from your dataset.
-        # Otherwise, it returns an empty mask.
-        mask = np.empty([0, 0, 0])
-        class_ids = np.empty([0], np.int32)
-        return mask, class_ids
 
 
 def resize_image(image, min_dim=None, max_dim=None, padding=False):

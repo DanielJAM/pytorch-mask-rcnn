@@ -565,26 +565,15 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):
     # Handle COCO crowds
     # A crowd box in COCO is a bounding box around several instances. Exclude
     # them from training. A crowd box is given a negative class ID.
-    if torch.nonzero(gt_class_ids < 0).size():
-        crowd_ix = torch.nonzero(gt_class_ids < 0)[:, 0]
-        non_crowd_ix = torch.nonzero(gt_class_ids > 0)[:, 0]
-        crowd_boxes = gt_boxes[crowd_ix.data, :]
-        gt_class_ids = gt_class_ids[non_crowd_ix.data]
-        gt_boxes = gt_boxes[non_crowd_ix.data, :]
-
-        # Compute overlaps with crowd boxes [anchors, crowds]
-        crowd_overlaps = bbox_overlaps(proposals, crowd_boxes)
-        crowd_iou_max = torch.max(crowd_overlaps, dim=1)[0]
-        no_crowd_bool = crowd_iou_max < 0.001
-    else:
-        no_crowd_bool = Variable(torch.ByteTensor(proposals.size()[0] * [True]), requires_grad=False)
-        if config.GPU_COUNT:
-            no_crowd_bool = no_crowd_bool.cuda()
+    # Removed functionality, don't use crowd boxes.
+    no_crowd_bool = Variable(torch.ByteTensor(proposals.size()[0] * [True]), requires_grad=False)
+    if config.GPU_COUNT:
+        no_crowd_bool = no_crowd_bool.cuda()
 
     # Compute overlaps matrix [proposals, gt_boxes]
     overlaps = bbox_overlaps(proposals, gt_boxes)
 
-    # Determine postive and negative ROIs
+    # Determine positive and negative ROIs
     roi_iou_max = torch.max(overlaps, dim=1)[0]
 
     # 1. Positive ROIs are those with >= 0.5 IoU with a GT box
@@ -592,7 +581,7 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):
 
     # Subsample ROIs. Aim for 33% positive
     # Positive ROIs
-    if torch.nonzero(positive_roi_bool).size():
+    if torch.nonzero(positive_roi_bool).nelement():
         positive_indices = torch.nonzero(positive_roi_bool)[:, 0]
 
         positive_count = int(config.TRAIN_ROIS_PER_IMAGE *
@@ -1085,8 +1074,6 @@ def load_image_gt(dataset, config, image_id, augment=False):
     """
     # Load image
     image = dataset.load_image(image_id)
-    # TODO: class_ids extraction without mask
-    mask, class_ids = dataset.load_mask(image_id)
     shape = image.shape
     image, window, scale, padding = utils.resize_image(
         image,
@@ -1099,11 +1086,8 @@ def load_image_gt(dataset, config, image_id, augment=False):
         if random.randint(0, 1):
             image = np.fliplr(image)
 
-    # Bounding boxes. Note that some boxes might be all zeros
-    # if the corresponding mask got cropped out.
-    # bbox: [num_instances, (y1, x1, y2, x2)]
-    # TODO: Extract bboxes without using mask
-    bbox = utils.extract_bboxes(mask)
+    # bboxes: [num_instances, (y1, x1, y2, x2)]
+    bboxes, class_ids = utils.extract_bboxes_coco(dataset.image_info['id' == image_id])
 
     # Active classes
     # Different datasets have different classes, so track the
@@ -1115,7 +1099,7 @@ def load_image_gt(dataset, config, image_id, augment=False):
     # Image meta data
     image_meta = compose_image_meta(image_id, shape, window, active_class_ids)
 
-    return image, image_meta, class_ids, bbox
+    return image, image_meta, class_ids, bboxes
 
 
 def build_rpn_targets(image_shape, anchors, gt_class_ids, gt_boxes, config):
