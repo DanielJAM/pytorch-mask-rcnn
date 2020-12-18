@@ -104,7 +104,7 @@ class CocoDataset(utils.Dataset):
         auto_download: Automatically download and unzip MS-COCO images and annotations
         """
 
-        coco = COCO("{}/GT_{}_set.json".format(dataset_dir, subset))
+        coco = COCO("{}/GT_{}_set(pano_id-int).json".format(dataset_dir, subset))
         if subset == "minival" or subset == "valminusminival":
             subset = "val"
         image_dir = "{}/{}".format(dataset_dir, "PanorAMS_panoramas_GT/")
@@ -169,15 +169,6 @@ class CocoDataset(utils.Dataset):
             # rle
             rle = ann['segmentation']
         return rle
-
-    def annToMask(self, ann, height, width):
-        """
-        Convert annotation which can be polygons, uncompressed RLE, or RLE to binary mask.
-        :return: binary mask (numpy 2D array)
-        """
-        rle = self.annToRLE(ann, height, width)
-        m = maskUtils.decode(rle)
-        return m
 
 
 ############################################################
