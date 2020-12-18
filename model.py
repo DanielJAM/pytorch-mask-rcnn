@@ -432,6 +432,7 @@ def pyramid_roi_align(inputs, pool_size, image_shape):
 
     # Crop boxes [batch, num_boxes, (y1, x1, y2, x2)] in normalized coords
     boxes = inputs[0]
+    print("boxes:\n", boxes)
 
     # Feature Maps. List of feature maps from different level of the
     # feature pyramid. Each is [batch, height, width, channels]
@@ -1748,7 +1749,7 @@ class MaskRCNN(nn.Module):
 
             # Backpropagation
             loss.backward()
-            torch.nn.utils.clip_grad_norm(self.parameters(), 5.0)
+            torch.nn.utils.clip_grad_norm_(self.parameters(), 5.0)
             if (batch_count % self.config.BATCH_SIZE) == 0:
                 optimizer.step()
                 optimizer.zero_grad()
@@ -1758,15 +1759,15 @@ class MaskRCNN(nn.Module):
             printProgressBar(step + 1, steps, prefix="\t{}/{}".format(step + 1, steps),
                              suffix="Complete - loss: {:.5f} - rpn_class_loss: {:.5f} - rpn_bbox_loss: {:.5f} - "
                                     "mrcnn_class_loss: {:.5f} - mrcnn_bbox_loss: {:.5f}".format(
-                                 loss.data.cpu()[0], rpn_class_loss.data.cpu()[0], rpn_bbox_loss.data.cpu()[0],
-                                 mrcnn_class_loss.data.cpu()[0], mrcnn_bbox_loss.data.cpu()[0]), length=10)
+                                 loss.data.cpu().item(), rpn_class_loss.data.cpu().item(), rpn_bbox_loss.data.cpu().item(),
+                                 mrcnn_class_loss.data.cpu().item(), mrcnn_bbox_loss.data.cpu().item()), length=10)
 
             # Statistics
-            loss_sum += loss.data.cpu()[0] / steps
-            loss_rpn_class_sum += rpn_class_loss.data.cpu()[0] / steps
-            loss_rpn_bbox_sum += rpn_bbox_loss.data.cpu()[0] / steps
-            loss_mrcnn_class_sum += mrcnn_class_loss.data.cpu()[0] / steps
-            loss_mrcnn_bbox_sum += mrcnn_bbox_loss.data.cpu()[0] / steps
+            loss_sum += loss.data.cpu().item() / steps
+            loss_rpn_class_sum += rpn_class_loss.data.cpu().item() / steps
+            loss_rpn_bbox_sum += rpn_bbox_loss.data.cpu().item() / steps
+            loss_mrcnn_class_sum += mrcnn_class_loss.data.cpu().item() / steps
+            loss_mrcnn_bbox_sum += mrcnn_bbox_loss.data.cpu().item() / steps
 
             # Break after 'steps' steps
             if step == steps - 1:

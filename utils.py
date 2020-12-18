@@ -59,8 +59,8 @@ def extract_bboxes_coco(image_info):
     for i, box in enumerate(box_annos):
         xmin = box['bbox'][0]
         ymin = box['bbox'][1]
-        xmax = xmin + box['bbox'][2]
-        ymax = ymin + box['bbox'][3]
+        xmax = box['bbox'][2]   + xmin
+        ymax = box['bbox'][3]   + ymin
         coors = np.array([xmin, ymin, xmax, ymax])
         boxes[i] = coors
 
