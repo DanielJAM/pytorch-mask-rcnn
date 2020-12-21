@@ -12,16 +12,12 @@ import random
 import itertools
 import colorsys
 import numpy as np
-from skimage.measure import find_contours
 import matplotlib.pyplot as plt
 
 if "DISPLAY" not in os.environ:
     plt.switch_backend('agg')
 import matplotlib.patches as patches
 import matplotlib.lines as lines
-from matplotlib.patches import Polygon
-
-import utils
 
 
 ############################################################
@@ -65,24 +61,11 @@ def random_colors(N, bright=True):
     return colors
 
 
-def apply_mask(image, mask, color, alpha=0.5):
-    """Apply the given mask to the image.
-    """
-    for c in range(3):
-        image[:, :, c] = np.where(mask == 1,
-                                  image[:, :, c] *
-                                  (1 - alpha) + alpha * color[c] * 255,
-                                  image[:, :, c])
-    return image
-
-
-# masks,
 def display_instances(image, boxes, class_ids, class_names,
                       scores=None, title="",
                       figsize=(16, 16), ax=None):
     """
     boxes: [num_instance, (y1, x1, y2, x2, class_id)] in image coordinates.
-    masks: [height, width, num_instances]
     class_ids: [num_instances]
     class_names: list of class names of the dataset
     scores: (optional) confidence scores for each box
@@ -94,7 +77,7 @@ def display_instances(image, boxes, class_ids, class_names,
         print("\n*** No instances to display *** \n")
         return
     else:
-        assert boxes.shape[0] == class_ids.shape[0]  # masks.shape[-1] ==
+        assert boxes.shape[0] == class_ids.shape[0]
 
     if not ax:
         _, ax = plt.subplots(1, figsize=figsize)
@@ -109,7 +92,6 @@ def display_instances(image, boxes, class_ids, class_names,
     ax.axis('off')
     ax.set_title(title)
 
-    masked_image = image.astype(np.uint32).copy()
     for i in range(N):
         color = colors[i]
 
@@ -131,33 +113,14 @@ def display_instances(image, boxes, class_ids, class_names,
         caption = "{} {:.3f}".format(label, score) if score else label
         ax.text(x1, y1 + 8, caption,
                 color='w', size=11, backgroundcolor="none")
-
-    #     # Mask
-    #     mask = masks[:, :, i]
-    #     masked_image = apply_mask(masked_image, mask, color)
-    #
-    #     # Mask Polygon
-    #     # Pad to ensure proper polygons for masks that touch image edges.
-    #     padded_mask = np.zeros(
-    #         (mask.shape[0] + 2, mask.shape[1] + 2), dtype=np.uint8)
-    #     padded_mask[1:-1, 1:-1] = mask
-    #     contours = find_contours(padded_mask, 0.5)
-    #     for verts in contours:
-    #         # Subtract the padding and flip (y, x) to (x, y)
-    #         verts = np.fliplr(verts) - 1
-    #         p = Polygon(verts, facecolor="none", edgecolor=color)
-    #         ax.add_patch(p)
-    ax.imshow(masked_image.astype(np.uint8))
     plt.show()
 
 
-def draw_rois(image, rois, refined_rois, mask, class_ids, class_names, limit=10):
+def draw_rois(image, rois, refined_rois, class_ids, class_names, limit=10):
     """
     anchors: [n, (y1, x1, y2, x2)] list of anchors in image coordinates.
     proposals: [n, 4] the same anchors but refined to fit objects better.
     """
-    masked_image = image.copy()
-
     # Pick random anchors in case there are too many.
     ids = np.arange(rois.shape[0], dtype=np.int32)
     ids = np.random.choice(
@@ -198,12 +161,6 @@ def draw_rois(image, rois, refined_rois, mask, class_ids, class_names, limit=10)
             ax.text(rx1, ry1 + 8, "{}".format(label),
                     color='w', size=11, backgroundcolor="none")
 
-            # Mask
-            m = utils.unmold_mask(mask[roi_id], rois[roi_id][:4].astype(np.int32), image.shape)
-            masked_image = apply_mask(masked_image, m, color)
-
-    ax.imshow(masked_image)
-
     # Print stats
     print("Positive ROIs: ", class_ids[class_ids > 0].shape[0])
     print("Negative ROIs: ", class_ids[class_ids == 0].shape[0])
@@ -222,29 +179,6 @@ def draw_box(image, box, color):
     image[y1:y2, x1:x1 + 2] = color
     image[y1:y2, x2:x2 + 2] = color
     return image
-
-
-def display_top_masks(image, mask, class_ids, class_names, limit=4):
-    """Display the given image and the top few class masks."""
-    to_display = []
-    titles = []
-    to_display.append(image)
-    titles.append("H x W={}x{}".format(image.shape[0], image.shape[1]))
-    # Pick top prominent classes in this image
-    unique_class_ids = np.unique(class_ids)
-    mask_area = [np.sum(mask[:, :, np.where(class_ids == i)[0]])
-                 for i in unique_class_ids]
-    top_ids = [v[0] for v in sorted(zip(unique_class_ids, mask_area),
-                                    key=lambda r: r[1], reverse=True) if v[1] > 0]
-    # Generate images and titles
-    for i in range(limit):
-        class_id = top_ids[i] if i < len(top_ids) else -1
-        # Pull masks of instances belonging to the same class.
-        m = mask[:, :, np.where(class_ids == class_id)[0]]
-        m = np.sum(m * np.arange(1, m.shape[-1] + 1), -1)
-        to_display.append(m)
-        titles.append(class_names[class_id] if class_id != -1 else "-")
-    display_images(to_display, titles=titles, cols=limit + 1, cmap="Blues_r")
 
 
 def plot_precision_recall(AP, precisions, recalls):
@@ -301,15 +235,14 @@ def plot_overlaps(gt_class_ids, pred_class_ids, pred_scores,
 
 
 def draw_boxes(image, boxes=None, refined_boxes=None,
-               masks=None, captions=None, visibilities=None,
+               captions=None, visibilities=None,
                title="", ax=None):
-    """Draw bounding boxes and segmentation masks with different
+    """Draw bounding boxes with different
     customizations.
 
     boxes: [N, (y1, x1, y2, x2, class_id)] in image coordinates.
     refined_boxes: Like boxes, but draw with solid lines to show
         that they're the result of refining 'boxes'.
-    masks: [N, height, width]
     captions: List of N titles to display on each box
     visibilities: (optional) List of values of 0, 1, or 2. Determine how
         prominent each bounding box should be.
@@ -335,7 +268,6 @@ def draw_boxes(image, boxes=None, refined_boxes=None,
 
     ax.set_title(title)
 
-    masked_image = image.astype(np.uint32).copy()
     for i in range(N):
         # Box visibility
         visibility = visibilities[i] if visibilities is not None else 1
@@ -384,23 +316,6 @@ def draw_boxes(image, boxes=None, refined_boxes=None,
                     color='w', backgroundcolor="none",
                     bbox={'facecolor': color, 'alpha': 0.5,
                           'pad': 2, 'edgecolor': 'none'})
-
-        # Masks
-        if masks is not None:
-            mask = masks[:, :, i]
-            masked_image = apply_mask(masked_image, mask, color)
-            # Mask Polygon
-            # Pad to ensure proper polygons for masks that touch image edges.
-            padded_mask = np.zeros(
-                (mask.shape[0] + 2, mask.shape[1] + 2), dtype=np.uint8)
-            padded_mask[1:-1, 1:-1] = mask
-            contours = find_contours(padded_mask, 0.5)
-            for verts in contours:
-                # Subtract the padding and flip (y, x) to (x, y)
-                verts = np.fliplr(verts) - 1
-                p = Polygon(verts, facecolor="none", edgecolor=color)
-                ax.add_patch(p)
-    ax.imshow(masked_image.astype(np.uint8))
 
 
 def plot_loss(loss, val_loss, save=True, log_dir=None):
@@ -476,17 +391,3 @@ def plot_loss(loss, val_loss, save=True, log_dir=None):
     else:
         plt.show(block=False)
         plt.pause(0.1)
-
-    # plt.figure("mrcnn_mask_loss")
-    # plt.gcf().clear()
-    # plt.plot(loss[:, 5], label='train')
-    # plt.plot(val_loss[:, 5], label='valid')
-    # plt.xlabel('epoch')
-    # plt.ylabel('loss')
-    # plt.legend()
-    # if save:
-    #     save_path = os.path.join(log_dir, "mrcnn_mask_loss.png")
-    #     plt.savefig(save_path)
-    # else:
-    #     plt.show(block=False)
-    #     plt.pause(0.1)
