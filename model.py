@@ -432,7 +432,6 @@ def pyramid_roi_align(inputs, pool_size, image_shape):
 
     # Crop boxes [batch, num_boxes, (y1, x1, y2, x2)] in normalized coords
     boxes = inputs[0]
-    print("boxes:\n", boxes)
 
     # Feature Maps. List of feature maps from different level of the
     # feature pyramid. Each is [batch, height, width, channels]
@@ -1490,11 +1489,10 @@ class MaskRCNN(nn.Module):
         if self.config.GPU_COUNT:
             molded_images = molded_images.cuda()
 
-        # Wrap in variable
-        molded_images = Variable(molded_images, volatile=True)
-
-        # Run object detection
-        detections = self.predict([molded_images, image_metas], mode='inference')
+        # Speedup computation by not building gradient graph
+        with torch.no_grad():
+            # Run object detection
+            detections = self.predict([molded_images, image_metas], mode='inference')
 
         # Convert to numpy
         detections = detections.data.cpu().numpy()
@@ -1796,33 +1794,28 @@ class MaskRCNN(nn.Module):
             # image_metas as numpy array
             image_metas = image_metas.numpy()
 
-            # Wrap in variables
-            images = Variable(images, volatile=True)
-            rpn_match = Variable(rpn_match, volatile=True)
-            rpn_bbox = Variable(rpn_bbox, volatile=True)
-            gt_class_ids = Variable(gt_class_ids, volatile=True)
-            gt_boxes = Variable(gt_boxes, volatile=True)
+            # Speedup computation by not building gradient graph
+            with torch.no_grad():
+                # To GPU
+                if self.config.GPU_COUNT:
+                    images = images.cuda()
+                    rpn_match = rpn_match.cuda()
+                    rpn_bbox = rpn_bbox.cuda()
+                    gt_class_ids = gt_class_ids.cuda()
+                    gt_boxes = gt_boxes.cuda()
 
-            # To GPU
-            if self.config.GPU_COUNT:
-                images = images.cuda()
-                rpn_match = rpn_match.cuda()
-                rpn_bbox = rpn_bbox.cuda()
-                gt_class_ids = gt_class_ids.cuda()
-                gt_boxes = gt_boxes.cuda()
+                # Run object detection
+                rpn_class_logits, rpn_pred_bbox, target_class_ids, mrcnn_class_logits, target_deltas, mrcnn_bbox = \
+                    self.predict([images, image_metas, gt_class_ids, gt_boxes], mode='training')
 
-            # Run object detection
-            rpn_class_logits, rpn_pred_bbox, target_class_ids, mrcnn_class_logits, target_deltas, mrcnn_bbox = \
-                self.predict([images, image_metas, gt_class_ids, gt_boxes], mode='training')
+                if not target_class_ids.nelement():
+                    continue
 
-            if not target_class_ids.nelement():
-                continue
-
-            # Compute losses
-            rpn_class_loss, rpn_bbox_loss, mrcnn_class_loss, mrcnn_bbox_loss = compute_losses(
-                rpn_match, rpn_bbox, rpn_class_logits, rpn_pred_bbox, target_class_ids, mrcnn_class_logits,
-                target_deltas, mrcnn_bbox)
-            loss = rpn_class_loss + rpn_bbox_loss + mrcnn_class_loss + mrcnn_bbox_loss
+                # Compute losses
+                rpn_class_loss, rpn_bbox_loss, mrcnn_class_loss, mrcnn_bbox_loss = compute_losses(
+                    rpn_match, rpn_bbox, rpn_class_logits, rpn_pred_bbox, target_class_ids, mrcnn_class_logits,
+                    target_deltas, mrcnn_bbox)
+                loss = rpn_class_loss + rpn_bbox_loss + mrcnn_class_loss + mrcnn_bbox_loss
 
             # Progress
             printProgressBar(step + 1, steps, prefix="\t{}/{}".format(step + 1, steps),
@@ -1833,10 +1826,10 @@ class MaskRCNN(nn.Module):
 
             # Statistics
             loss_sum += loss.data.cpu()[0] / steps
-            loss_rpn_class_sum += rpn_class_loss.data.cpu()[0] / steps
-            loss_rpn_bbox_sum += rpn_bbox_loss.data.cpu()[0] / steps
-            loss_mrcnn_class_sum += mrcnn_class_loss.data.cpu()[0] / steps
-            loss_mrcnn_bbox_sum += mrcnn_bbox_loss.data.cpu()[0] / steps
+            loss_rpn_class_sum += rpn_class_loss.data.cpu().item() / steps
+            loss_rpn_bbox_sum += rpn_bbox_loss.data.cpu().item() / steps
+            loss_mrcnn_class_sum += mrcnn_class_loss.data.cpu().item() / steps
+            loss_mrcnn_bbox_sum += mrcnn_bbox_loss.data.cpu().item() / steps
 
             # Break after 'steps' steps
             if step == steps - 1:
