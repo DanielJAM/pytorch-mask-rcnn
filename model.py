@@ -615,7 +615,7 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):
     negative_roi_bool = roi_iou_max < 0.5
     negative_roi_bool = negative_roi_bool & no_crowd_bool
     # Negative ROIs. Add enough to maintain positive:negative ratio.
-    if torch.nonzero(negative_roi_bool).size() and positive_count > 0:
+    if torch.nonzero(negative_roi_bool).nelement() and positive_count > 0:
         negative_indices = torch.nonzero(negative_roi_bool)[:, 0]
         r = 1.0 / config.ROI_POSITIVE_RATIO
         negative_count = int(r * positive_count - positive_count)
@@ -1008,7 +1008,7 @@ def compute_mrcnn_class_loss(target_class_ids, pred_class_logits):
     """
 
     # Loss
-    if target_class_ids.size():
+    if target_class_ids.nelement():
         loss = F.cross_entropy(pred_class_logits, target_class_ids.long())
     else:
         loss = Variable(torch.FloatTensor([0]), requires_grad=False)
@@ -1026,7 +1026,7 @@ def compute_mrcnn_bbox_loss(target_bbox, target_class_ids, pred_bbox):
     pred_bbox: [batch, num_rois, num_classes, (dy, dx, log(dh), log(dw))]
     """
 
-    if target_class_ids.size():
+    if target_class_ids.nelement():
         # Only positive ROIs contribute to the loss. And only
         # the right class_id of each ROI. Get their indicies.
         positive_roi_ix = torch.nonzero(target_class_ids > 0)[:, 0]
@@ -1604,7 +1604,7 @@ class MaskRCNN(nn.Module):
             rois, target_class_ids, target_deltas = \
                 detection_target_layer(rpn_rois, gt_class_ids, gt_boxes, self.config)
 
-            if not rois.size():
+            if not rois.nelement():
                 mrcnn_class_logits = Variable(torch.FloatTensor())
                 mrcnn_class = Variable(torch.IntTensor())
                 mrcnn_bbox = Variable(torch.FloatTensor())
@@ -1815,7 +1815,7 @@ class MaskRCNN(nn.Module):
             rpn_class_logits, rpn_pred_bbox, target_class_ids, mrcnn_class_logits, target_deltas, mrcnn_bbox = \
                 self.predict([images, image_metas, gt_class_ids, gt_boxes], mode='training')
 
-            if not target_class_ids.size():
+            if not target_class_ids.nelement():
                 continue
 
             # Compute losses
