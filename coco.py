@@ -301,12 +301,8 @@ if __name__ == '__main__':
     config.display()
 
     # Create model
-    if args.command == "train":
-        model = modellib.MaskRCNN(config=config,
-                                  model_dir=args.logs)
-    else:
-        model = modellib.MaskRCNN(config=config,
-                                  model_dir=args.logs)
+    model = modellib.MaskRCNN(config=config, model_dir=args.logs)
+    
     if config.GPU_COUNT:
         model = model.cuda()
 
