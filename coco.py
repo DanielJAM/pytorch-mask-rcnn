@@ -256,9 +256,6 @@ def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=Non
 
 
 if __name__ == '__main__':
-    start_time = time.process_time()
-    print("start time time(s): ", round(start_time, 2))
-
     import argparse
 
     # Parse command line arguments
