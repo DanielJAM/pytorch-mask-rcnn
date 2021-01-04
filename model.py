@@ -1406,7 +1406,7 @@ class MaskRCNN(nn.Module):
 
         # If we have a model path with date and epochs use them
         if model_path:
-            # Continue from we left of. Get epoch and date from the file name
+            # Continue from where we left off. Get epoch and date from the file name
             # A sample model path might look like:
             # /path/to/logs/coco20171029T2315/mask_rcnn_coco_0001.h5
             regex = r".*/\w+(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/mask\_rcnn\_\w+(\d{4})\.pth"
@@ -1495,7 +1495,7 @@ class MaskRCNN(nn.Module):
             detections = self.predict([molded_images, image_metas], mode='inference')
 
         # Convert to numpy
-        detections = detections.data.cpu().numpy()
+        detections = detections[0].data.cpu().numpy()
 
         # Process detections
         results = []

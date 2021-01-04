@@ -80,7 +80,7 @@ class CocoConfig(Config):
     IMAGES_PER_GPU = 1
 
     # Uncomment to train on 8 GPUs (default is 1)
-    # GPU_COUNT = 8
+    GPU_COUNT = 1
 
     # Number of classes (including background)
     NUM_CLASSES = 1 + 1  # COCO has 80 classes
@@ -176,7 +176,7 @@ class CocoDataset(utils.Dataset):
 ############################################################
 
 def build_coco_results(dataset, image_ids, rois, class_ids, scores):
-    """Arrange resutls to match COCO specs in http://cocodataset.org/#format
+    """Arrange results to match COCO specs in http://cocodataset.org/#format
     """
     # If no results, return an empty list
     if rois is None:
@@ -192,7 +192,7 @@ def build_coco_results(dataset, image_ids, rois, class_ids, scores):
 
             result = {
                 "image_id": image_id,
-                "category_id": dataset.get_source_class_id(class_id, "coco"),
+                "category_id": dataset.get_source_class_id(class_id, "PanorAMS"),
                 "bbox": [bbox[1], bbox[0], bbox[3] - bbox[1], bbox[2] - bbox[0]],
                 "score": score
             }
@@ -256,6 +256,9 @@ def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=Non
 
 
 if __name__ == '__main__':
+    start_time = time.process_time()
+    print("start time time(s): ", round(start_time, 2))
+
     import argparse
 
     # Parse command line arguments
@@ -278,12 +281,17 @@ if __name__ == '__main__':
                         default=500,
                         metavar="<image count>",
                         help='Images to use for evaluation (default=500)')
+    parser.add_argument('val_test',
+                        default='validation',
+                        metavar='"validation" or "test"',
+                        help="Evaluate with test or validation set")
 
     args = parser.parse_args()
     print("Command: ", args.command)
     print("Model: ", args.model)
     print("Dataset: ", args.dataset)
     print("Logs: ", args.logs)
+    print("Evaluate with:  {} set".format(args.val_test))
 
     # Configurations
     if args.command == "train":
@@ -302,7 +310,7 @@ if __name__ == '__main__':
 
     # Create model
     model = modellib.MaskRCNN(config=config, model_dir=args.logs)
-    
+
     if config.GPU_COUNT:
         model = model.cuda()
 
@@ -322,6 +330,9 @@ if __name__ == '__main__':
     # Load weights
     print("Loading weights ", model_path)
     model.load_weights(model_path)
+
+    # Save final config before start training
+    config.to_txt(model.log_dir)
 
     # Train or evaluate
     if args.command == "train":
@@ -361,9 +372,9 @@ if __name__ == '__main__':
                           layers='all')
 
     elif args.command == "evaluate":
-        # Validation dataset
+        # Dataset used for evaluation
         dataset_val = CocoDataset()
-        coco = dataset_val.load_coco(args.dataset, "validation", return_coco=True)
+        coco = dataset_val.load_coco(args.dataset, args.val_test, return_coco=True)
         dataset_val.prepare()
         print("Running COCO evaluation on {} images.".format(args.limit))
         evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))
