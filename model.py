@@ -44,7 +44,7 @@ def log(text, array=None):
     print(text)
 
 
-def printProgressBar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):
+def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):
     """
     Call in a loop to create terminal progress bar
     @params:
@@ -88,7 +88,7 @@ def intersect1d(tensor1, tensor2):
 
 
 def log2(x):
-    """Implementatin of Log2. Pytorch doesn't have a native implemenation."""
+    """Implementation of Log2. Pytorch doesn't have a native implementation."""
     ln2 = Variable(torch.log(torch.FloatTensor([2.0])), requires_grad=False)
     if x.is_cuda:
         ln2 = ln2.cuda()
@@ -328,7 +328,7 @@ def clip_boxes(boxes, window):
     boxes: [N, 4] each col is y1, x1, y2, x2
     window: [4] in the form y1, x1, y2, x2
     """
-    boxes = torch.stack( \
+    boxes = torch.stack(
         [boxes[:, 0].clamp(float(window[0]), float(window[2])),
          boxes[:, 1].clamp(float(window[1]), float(window[3])),
          boxes[:, 2].clamp(float(window[0]), float(window[2])),
@@ -340,7 +340,7 @@ def proposal_layer(inputs, proposal_count, nms_threshold, anchors, config=None):
     """Receives anchor scores and selects a subset to pass as proposals
     to the second stage. Filtering is done based on anchor scores and
     non-max suppression to remove overlaps. It also applies bounding
-    box refinment detals to anchors.
+    box refinement details to anchors.
 
     Inputs:
         rpn_probs: [batch, anchors, (bg prob, fg prob)]
@@ -465,7 +465,7 @@ def pyramid_roi_align(inputs, pool_size, image_shape):
         # Keep track of which box is mapped to which level
         box_to_level.append(ix.data)
 
-        # Stop gradient propogation to ROI proposals
+        # Stop gradient propagation to ROI proposals
         level_boxes = level_boxes.detach()
 
         # Crop and Resize
@@ -505,9 +505,9 @@ def bbox_overlaps(boxes1, boxes2):
     """Computes IoU overlaps between two sets of boxes.
     boxes1, boxes2: [N, (y1, x1, y2, x2)].
     """
-    # 1. Tile boxes2 and repeate boxes1. This allows us to compare
+    # 1. Tile boxes2 and repeat boxes1. This allows us to compare
     # every boxes1 against every boxes2 without loops.
-    # TF doesn't have an equivalent to np.repeate() so simulate it
+    # TF doesn't have an equivalent to np.repeat() so simulate it
     # using tf.tile() and tf.reshape.
     boxes1_repeat = boxes2.size()[0]
     boxes2_repeat = boxes1.size()[0]
@@ -554,7 +554,7 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):
     target_class_ids: [batch, TRAIN_ROIS_PER_IMAGE]. Integer class IDs.
     target_deltas: [batch, TRAIN_ROIS_PER_IMAGE, NUM_CLASSES,
                     (dy, dx, log(dh), log(dw), class_id)]
-                   Class-specific bbox refinments.
+                   Class-specific bbox refinements.
     """
 
     # Currently only supports batchsize 1
@@ -714,7 +714,7 @@ def refine_detections(rois, probs, deltas, window, config):
         std_dev = std_dev.cuda()
     refined_rois = apply_box_deltas(rois, deltas_specific * std_dev)
 
-    # Convert coordiates to image domain
+    # Convert coordinates to image domain
     height, width = config.IMAGE_SHAPE[:2]
     scale = Variable(torch.from_numpy(np.array([height, width, height, width])).float(), requires_grad=False)
     if config.GPU_COUNT:
@@ -724,7 +724,7 @@ def refine_detections(rois, probs, deltas, window, config):
     # Clip boxes to image window
     refined_rois = clip_to_window(window, refined_rois)
 
-    # Round and cast to int since we're deadling with pixels now
+    # Round and cast to int since we're dealing with pixels now
     refined_rois = torch.round(refined_rois)
 
     # TODO: Filter out boxes with zero area
@@ -754,7 +754,7 @@ def refine_detections(rois, probs, deltas, window, config):
 
         class_keep = nms(torch.cat((ix_rois, ix_scores.unsqueeze(1)), dim=1).data, config.DETECTION_NMS_THRESHOLD)
 
-        # Map indicies
+        # Map indices
         class_keep = keep[ixs[order[class_keep].data].data]
 
         if i == 0:
@@ -963,7 +963,7 @@ def compute_rpn_class_loss(rpn_match, rpn_class_logits):
     rpn_class_logits = rpn_class_logits[indices.data[:, 0], indices.data[:, 1], :]
     anchor_class = anchor_class[indices.data[:, 0], indices.data[:, 1]]
 
-    # Crossentropy loss
+    # Cross-entropy loss
     loss = F.cross_entropy(rpn_class_logits, anchor_class)
 
     return loss
@@ -973,7 +973,7 @@ def compute_rpn_bbox_loss(target_bbox, rpn_match, rpn_bbox):
     """Return the RPN bounding box loss graph.
 
     target_bbox: [batch, max positive anchors, (dy, dx, log(dh), log(dw))].
-        Uses 0 padding to fill in unsed bbox deltas.
+        Uses 0 padding to fill in unused bbox deltas.
     rpn_match: [batch, anchors, 1]. Anchor match type. 1=positive,
                -1=negative, 0=neutral anchor.
     rpn_bbox: [batch, anchors, (dy, dx, log(dh), log(dw))]
@@ -1027,7 +1027,7 @@ def compute_mrcnn_bbox_loss(target_bbox, target_class_ids, pred_bbox):
 
     if target_class_ids.nelement():
         # Only positive ROIs contribute to the loss. And only
-        # the right class_id of each ROI. Get their indicies.
+        # the right class_id of each ROI. Get their indices.
         positive_roi_ix = torch.nonzero(target_class_ids > 0)[:, 0]
         positive_roi_class_ids = target_class_ids[positive_roi_ix.data].long()
         indices = torch.stack((positive_roi_ix, positive_roi_class_ids), dim=1)
@@ -1153,7 +1153,7 @@ def build_rpn_targets(image_shape, anchors, gt_class_ids, gt_boxes, config):
     # matched to them. Skip boxes in crowd areas.
     anchor_iou_argmax = np.argmax(overlaps, axis=1)
     anchor_iou_max = overlaps[np.arange(overlaps.shape[0]), anchor_iou_argmax]
-    rpn_match[(anchor_iou_max < 0.3) & (no_crowd_bool)] = -1
+    rpn_match[(anchor_iou_max < 0.3) & no_crowd_bool] = -1
     # 2. Set an anchor for each GT box (regardless of IoU value).
     # TODO: If multiple anchors have the same IoU match all of them
     gt_iou_argmax = np.argmax(overlaps, axis=0)
@@ -1182,7 +1182,7 @@ def build_rpn_targets(image_shape, anchors, gt_class_ids, gt_boxes, config):
     # to match the corresponding GT boxes.
     ids = np.where(rpn_match == 1)[0]
     ix = 0  # index into rpn_bbox
-    # TODO: use box_refinment() rather than duplicating the code here
+    # TODO: use box_refinement() rather than duplicating the code here
     for i, a in zip(ids, anchors[ids]):
         # Closest gt box (it might have IoU < 0.7)
         gt = gt_boxes[anchor_iou_argmax[i]]
@@ -1225,7 +1225,7 @@ class Dataset(torch.utils.data.Dataset):
                      horizontal flips are supported)
 
             Returns a Python generator. Upon calling next() on it, the
-            generator returns two lists, inputs and outputs. The containtes
+            generator returns two lists, inputs and outputs. The contents
             of the lists differs depending on the received arguments:
             inputs list:
             - images: [batch, H, W, C]
@@ -1332,12 +1332,12 @@ class MaskRCNN(nn.Module):
         # Build the shared convolutional layers.
         # Bottom-up Layers
         # Returns a list of the last layers of each stage, 5 in total.
-        # Don't create the thead (stage 5), so we pick the 4th item in the list.
+        # Don't create the thread (stage 5), so we pick the 4th item in the list.
         resnet = ResNet("resnet101", stage5=True)
         C1, C2, C3, C4, C5 = resnet.stages()
 
         # Top-down Layers
-        # TODO: add assert to varify feature map sizes match what's in config
+        # TODO: add assert to verify feature map sizes match what's in config
         self.fpn = FPN(C1, C2, C3, C4, C5, out_channels=256)
 
         # Generate Anchors
@@ -1360,7 +1360,8 @@ class MaskRCNN(nn.Module):
         def set_bn_fix(m):
             classname = m.__class__.__name__
             if classname.find('BatchNorm') != -1:
-                for p in m.parameters(): p.requires_grad = False
+                for p in m.parameters():
+                    p.requires_grad = False
 
         self.apply(set_bn_fix)
 
@@ -1452,10 +1453,10 @@ class MaskRCNN(nn.Module):
         return dir_name, checkpoint
 
     def load_weights(self, filepath):
-        """Modified version of the correspoding Keras function with
+        """Modified version of the corresponding Keras function with
         the addition of multi-GPU support and the ability to exclude
         some layers from loading.
-        exlude: list of layer names to excluce
+        exclude: list of layer names to exclude
         """
         if os.path.exists(filepath):
             state_dict = torch.load(filepath)
@@ -1625,7 +1626,7 @@ class MaskRCNN(nn.Module):
                 are considered to be done already, so this actually determines
                 the epochs to train in total rather than in this particular
                 call.
-        layers: Allows selecting wich layers to train. It can be:
+        layers: Allows selecting which layers to train. It can be:
             - A regular expression to match layer names to train
             - One of these predefined values:
               heads: The RPN, classifier and mask heads of the network
@@ -1754,11 +1755,12 @@ class MaskRCNN(nn.Module):
                 batch_count = 0
 
             # Progress
-            printProgressBar(step + 1, steps, prefix="\t{}/{}".format(step + 1, steps),
-                             suffix="Complete - loss: {:.5f} - rpn_class_loss: {:.5f} - rpn_bbox_loss: {:.5f} - "
-                                    "mrcnn_class_loss: {:.5f} - mrcnn_bbox_loss: {:.5f}".format(
-                                 loss.data.cpu().item(), rpn_class_loss.data.cpu().item(), rpn_bbox_loss.data.cpu().item(),
-                                 mrcnn_class_loss.data.cpu().item(), mrcnn_bbox_loss.data.cpu().item()), length=10)
+            print_progress_bar(step + 1, steps, prefix="\t{}/{}".format(step + 1, steps),
+                               suffix="Complete - loss: {:.5f} - rpn_class_loss: {:.5f} - rpn_bbox_loss: {:.5f} - "
+                                      "mrcnn_class_loss: {:.5f} - mrcnn_bbox_loss: {:.5f}".format(
+                                   loss.data.cpu().item(), rpn_class_loss.data.cpu().item(),
+                                   rpn_bbox_loss.data.cpu().item(),
+                                   mrcnn_class_loss.data.cpu().item(), mrcnn_bbox_loss.data.cpu().item()), length=10)
 
             # Statistics
             loss_sum += loss.data.cpu().item() / steps
@@ -1818,14 +1820,15 @@ class MaskRCNN(nn.Module):
                 loss = rpn_class_loss + rpn_bbox_loss + mrcnn_class_loss + mrcnn_bbox_loss
 
             # Progress
-            printProgressBar(step + 1, steps, prefix="\t{}/{}".format(step + 1, steps),
-                             suffix="Complete - loss: {:.5f} - rpn_class_loss: {:.5f} - rpn_bbox_loss: {:.5f} - "
-                                    "mrcnn_class_loss: {:.5f} - mrcnn_bbox_loss: {:.5f}".format(
-                                 loss.data.cpu()[0], rpn_class_loss.data.cpu()[0], rpn_bbox_loss.data.cpu()[0],
-                                 mrcnn_class_loss.data.cpu()[0], mrcnn_bbox_loss.data.cpu()[0]), length=10)
+            print_progress_bar(step + 1, steps, prefix="\t{}/{}".format(step + 1, steps),
+                               suffix="Complete - loss: {:.5f} - rpn_class_loss: {:.5f} - rpn_bbox_loss: {:.5f} - "
+                                      "mrcnn_class_loss: {:.5f} - mrcnn_bbox_loss: {:.5f}".format(
+                                   loss.data.cpu().item(), rpn_class_loss.data.cpu().item(),
+                                   rpn_bbox_loss.data.cpu().item(),
+                                   mrcnn_class_loss.data.cpu().item(), mrcnn_bbox_loss.data.cpu().item()), length=10)
 
             # Statistics
-            loss_sum += loss.data.cpu()[0] / steps
+            loss_sum += loss.data.cpu().item() / steps
             loss_rpn_class_sum += rpn_class_loss.data.cpu().item() / steps
             loss_rpn_bbox_sum += rpn_bbox_loss.data.cpu().item() / steps
             loss_mrcnn_class_sum += mrcnn_class_loss.data.cpu().item() / steps
@@ -1841,10 +1844,10 @@ class MaskRCNN(nn.Module):
     def mold_inputs(self, images):
         """Takes a list of images and modifies them to the format expected
         as an input to the neural network.
-        images: List of image matricies [height,width,depth]. Images can have
+        images: List of image matrices [height,width,depth]. Images can have
             different sizes.
 
-        Returns 3 Numpy matricies:
+        Returns 3 Numpy matrices:
         molded_images: [N, h, w, 3]. Images resized and normalized.
         image_metas: [N, length of meta data]. Details about each image.
         windows: [N, (y1, x1, y2, x2)]. The portion of the image that has the
@@ -1877,7 +1880,7 @@ class MaskRCNN(nn.Module):
         return molded_images, image_metas, windows
 
     def unmold_detections(self, detections, image_shape, window):
-        """Reformats the detections of one image from the format of the neural
+        """Re-formats the detections of one image from the format of the neural
         network output to a format suitable for use in the rest of the
         application.
 
@@ -1944,7 +1947,7 @@ def compose_image_meta(image_id, image_shape, window, active_class_ids):
     meta = np.array(
         [image_id] +  # size=1
         list(image_shape) +  # size=3
-        list(window) +  # size=4 (y1, x1, y2, x2) in image cooredinates
+        list(window) +  # size=4 (y1, x1, y2, x2) in image coordinates
         list(active_class_ids)  # size=num_classes
     )
     return meta
@@ -1976,7 +1979,7 @@ def parse_image_meta_graph(meta):
 
 
 def mold_image(images, config):
-    """Takes RGB images with 0-255 values and subtraces
+    """Takes RGB images with 0-255 values and subtracts
     the mean pixel and converts it to float. Expects image
     colors in RGB order.
     """
