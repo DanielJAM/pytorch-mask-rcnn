@@ -1667,7 +1667,7 @@ class MaskRCNN(nn.Module):
         # Add L2 Regularization
         # Skip gamma and beta weights of batch normalization layers.
         trainables_wo_bn = [param for name, param in self.named_parameters() if
-                            param.requires_grad and not 'bn' in name]
+                            param.requires_grad and 'bn' not in name]
         trainables_only_bn = [param for name, param in self.named_parameters() if param.requires_grad and 'bn' in name]
         optimizer = optim.SGD([
             {'params': trainables_wo_bn, 'weight_decay': self.config.WEIGHT_DECAY},

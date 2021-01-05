@@ -41,15 +41,9 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from pycocotools import mask as maskUtils
 
-import zipfile
-import urllib.request
-import shutil
-
 from config import Config
 import utils
 import model as modellib
-
-import torch
 
 # Root directory of the project
 ROOT_DIR = os.getcwd()
@@ -90,9 +84,9 @@ class CocoConfig(Config):
 #  Dataset
 ############################################################
 
+# noinspection SpellCheckingInspection
 class CocoDataset(utils.Dataset):
-    def load_coco(self, dataset_dir, subset, year=DEFAULT_DATASET_YEAR, class_ids=None,
-                  class_map=None, return_coco=False, auto_download=False):
+    def load_coco(self, dataset_dir, subset, class_ids=None, return_coco=False):
         """Load a subset of the COCO dataset.
         dataset_dir: The root directory of the COCO dataset.
         subset: What to load (train, val, minival, valminusminival)
@@ -104,42 +98,39 @@ class CocoDataset(utils.Dataset):
         auto_download: Automatically download and unzip MS-COCO images and annotations
         """
 
-        coco = COCO("{}/GT_{}_set(pano_id-int).json".format(dataset_dir, subset))
-        if subset == "minival" or subset == "valminusminival":
-            subset = "val"
-        image_dir = "{}/{}".format(dataset_dir, "PanorAMS_panoramas_GT/")
+        coco_file = COCO("{}/GT_{}_set(pano_id-int).json".format(dataset_dir, subset))
 
         # Load all classes or a subset?
         if not class_ids:
             # All classes
-            class_ids = sorted(coco.getCatIds())
+            class_ids = sorted(coco_file.getCatIds())
 
         # All images or a subset?
         if class_ids:
             image_ids = []
-            for id in class_ids:
-                image_ids.extend(list(coco.getImgIds(catIds=[id])))
+            for i in class_ids:
+                image_ids.extend(list(coco_file.getImgIds(catIds=[i])))
             # Remove duplicates
             image_ids = list(set(image_ids))
         else:
             # All images
-            image_ids = list(coco.imgs.keys())
+            image_ids = list(coco_file.imgs.keys())
 
         # Add classes
         for i in class_ids:
-            self.add_class("PanorAMS", i, coco.loadCats(i)[0]["name"])
+            self.add_class("PanorAMS", i, coco_file.loadCats(i)[0]["name"])
 
         # Add images
         for i in image_ids:
             self.add_image(
                 "PanorAMS", image_id=i,
-                path=coco.imgs[i]['file_name'],
-                width=coco.imgs[i]["width"],
-                height=coco.imgs[i]["height"],
-                annotations=coco.loadAnns(coco.getAnnIds(
+                path=coco_file.imgs[i]['file_name'],
+                width=coco_file.imgs[i]["width"],
+                height=coco_file.imgs[i]["height"],
+                annotations=coco_file.loadAnns(coco_file.getAnnIds(
                     imgIds=[i], catIds=class_ids, iscrowd=None)))
         if return_coco:
-            return coco
+            return coco_file
 
     def image_reference(self, image_id):
         """Return a link to the image in the COCO Website."""
@@ -200,6 +191,7 @@ def build_coco_results(dataset, image_ids, rois, class_ids, scores):
     return results
 
 
+# noinspection SpellCheckingInspection
 def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=None):
     """Runs official COCO evaluation.
     dataset: A Dataset object with validation data
@@ -214,7 +206,7 @@ def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=Non
         image_ids = image_ids[:limit]
 
     # Get corresponding COCO image IDs.
-    coco_image_ids = [dataset.image_info[id]["id"] for id in image_ids]
+    coco_image_ids = [dataset.image_info[i]["id"] for i in image_ids]
 
     t_prediction = 0
     t_start = time.time()
@@ -353,7 +345,7 @@ if __name__ == '__main__':
                           layers='heads')
 
         # Training - Stage 2
-        # Finetune layers from ResNet stage 4 and up
+        # Fine tune layers from ResNet stage 4 and up
         print("Fine tune Resnet stage 4 and up")
         model.train_model(dataset_train, dataset_val,
                           learning_rate=config.LEARNING_RATE,
