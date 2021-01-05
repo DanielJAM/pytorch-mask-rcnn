@@ -25,10 +25,10 @@ Usage: import the module (see Jupyter notebooks for examples), or run from
 
 
     # Run COCO evaluation with validation set on last trained model
-    evaluate --dataset=../Master_Thesis_GvA_project/data/4_external --model=last validation
+    evaluate --dataset=../Master_Thesis_GvA_project/data/4_external --model=last --val_test=validation
 
     # Run COCO evaluation with test set
-    evaluate --dataset=../Master_Thesis_GvA_project/data/4_external --model=last test
+    evaluate --dataset=../Master_Thesis_GvA_project/data/4_external --model=last --val_test=test
 """
 
 import os
@@ -276,7 +276,7 @@ if __name__ == '__main__':
                         default=500,
                         metavar="<image count>",
                         help='Images to use for evaluation (default=500)')
-    parser.add_argument('val_test',
+    parser.add_argument('--val_test', required=False,
                         default='validation',
                         metavar='"validation" or "test"',
                         help="Evaluate with test or validation set")
