@@ -12,24 +12,30 @@ Usage: import the module (see Jupyter notebooks for examples), or run from
        the command line as such:
 
     # Train a new model starting from pre-trained COCO weights
-    python3 coco.py train --dataset=/path/to/coco/ --model=coco
+    train --dataset=../Master_Thesis_GvA_project/data/4_external --model=coco
 
     # Train a new model starting from ImageNet weights
-    python3 coco.py train --dataset=/path/to/coco/ --model=imagenet
+    train --dataset=../Master_Thesis_GvA_project/data/4_external --model=imagenet
 
     # Continue training a model that you had trained earlier
-    python3 coco.py train --dataset=/path/to/coco/ --model=/path/to/weights.h5
+    train --dataset=../Master_Thesis_GvA_project/data/4_external --model=/path/to/weights.h5
 
     # Continue training the last model you trained
-    python3 coco.py train --dataset=/path/to/coco/ --model=last
+    train --dataset=../Master_Thesis_GvA_project/data/4_external --model=last
 
-    # Run COCO evaluation on the last model you trained
-    python3 coco.py evaluate --dataset=/path/to/coco/ --model=last
+
+    # Run COCO evaluation with validation set on last trained model
+    evaluate --dataset=../Master_Thesis_GvA_project/data/4_external --model=last validation
+
+    # Run COCO evaluation with test set
+    evaluate --dataset=../Master_Thesis_GvA_project/data/4_external --model=last test
 """
 
 import os
+import sys
 import time
 import numpy as np
+import datetime
 
 # Download and install the Python COCO tools from https://github.com/waleedka/coco
 # That's a fork from the original https://github.com/pdollar/coco with a bug
@@ -276,11 +282,6 @@ if __name__ == '__main__':
                         help="Evaluate with test or validation set")
 
     args = parser.parse_args()
-    print("Command: ", args.command)
-    print("Model: ", args.model)
-    print("Dataset: ", args.dataset)
-    print("Logs: ", args.logs)
-    print("Evaluate with:  {} set".format(args.val_test))
 
     # Configurations
     if args.command == "train":
@@ -295,7 +296,6 @@ if __name__ == '__main__':
 
 
         config = InferenceConfig()
-    config.display()
 
     # Create model
     model = modellib.MaskRCNN(config=config, model_dir=args.logs)
@@ -307,7 +307,7 @@ if __name__ == '__main__':
     if args.model:
         if args.model.lower() == "last":
             # Find last trained weights
-            model_path = model.find_last()[1]
+            model_dir, model_path = model.find_last()
         elif args.model.lower() == "imagenet":
             # Start from ImageNet trained weights
             model_path = config.IMAGENET_MODEL_PATH
@@ -316,15 +316,23 @@ if __name__ == '__main__':
     else:
         model_path = ""
 
-    # Load weights
-    print("Loading weights ", model_path)
-    model.load_weights(model_path)
-
-    # Save final config before start training
-    config.to_txt(model.log_dir)
-
     # Train or evaluate
     if args.command == "train":
+        print("Command: ", args.command)
+        print("Model: ", args.model)
+        print("Dataset: ", args.dataset)
+        print("Logs: ", args.logs)
+        print("Evaluate with:  {} set".format(args.val_test))
+
+        config.display()
+
+        # Load weights
+        print("Loading weights ", model_path)
+        model.load_weights(model_path)
+
+        # Save final config before start training
+        config.to_txt(model.log_dir)
+
         # Training dataset
         dataset_train = CocoDataset()
         dataset_train.load_coco(args.dataset, "training")  # otherwise loads all Coco class ids
@@ -360,13 +368,31 @@ if __name__ == '__main__':
                           epochs=160,
                           layers='all')
 
-    elif args.command == "evaluate":
-        # Dataset used for evaluation
-        dataset_val = CocoDataset()
-        coco = dataset_val.load_coco(args.dataset, args.val_test, return_coco=True)
-        dataset_val.prepare()
-        print("Running COCO evaluation on {} images.".format(args.limit))
-        evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))
+    if args.command == "evaluate":
+        # Change output to text file
+        with open("{}/evaluate_{}-{:%Y%m%dT%H%M}.txt".format(model_dir, args.val_test,
+                                                             datetime.datetime.now()), 'w') as f:
+            sys.stdout = f
+
+            print("Command: ", args.command)
+            print("Model: ", args.model)
+            print("Dataset: ", args.dataset)
+            print("Logs: ", args.logs)
+            print("Evaluate with:  {} set".format(args.val_test))
+
+            config.display()
+
+            # Load weights
+            print("Loading weights ", model_path)
+            model.load_weights(model_path)
+
+            # Dataset used for evaluation
+            dataset_val = CocoDataset()
+            coco = dataset_val.load_coco(args.dataset, args.val_test, return_coco=True)
+            dataset_val.prepare()
+            print("Running COCO evaluation on {} images.".format(args.limit))
+            evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))
+
     else:
         print("'{}' is not recognized. "
               "Use 'train' or 'evaluate'".format(args.command))
