@@ -36,6 +36,8 @@ import sys
 import time
 import numpy as np
 import datetime
+import random
+import torch
 
 # Download and install the Python COCO tools from https://github.com/waleedka/coco
 # That's a fork from the original https://github.com/pdollar/coco with a bug
@@ -90,7 +92,6 @@ class CocoConfig(Config):
 #  Dataset
 ############################################################
 
-# noinspection SpellCheckingInspection
 class CocoDataset(utils.Dataset):
     def load_coco(self, dataset_dir, subset, class_ids=None, return_coco=False):
         """Load a subset of the COCO dataset.
@@ -197,7 +198,6 @@ def build_coco_results(dataset, image_ids, rois, class_ids, scores):
     return results
 
 
-# noinspection SpellCheckingInspection
 def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=None):
     """Runs official COCO evaluation.
     dataset: A Dataset object with validation data
@@ -280,6 +280,10 @@ if __name__ == '__main__':
                         default='validation',
                         metavar='"validation" or "test"',
                         help="Evaluate with test or validation set")
+    parser.add_argument('--random', required=False,
+                        default=None,
+                        metavar='Any integer',
+                        help='Set random seed for consistent results')
 
     args = parser.parse_args()
 
@@ -297,8 +301,20 @@ if __name__ == '__main__':
 
         config = InferenceConfig()
 
+    # Set random seed
+    if args.random is not None:
+        seed = int(args.random)
+        random.seed(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        np.random.seed(seed)
+        print("Random seed PyTorch, NumPy, and random set to {}".format(args.random))
+
     # Create model
-    model = modellib.MaskRCNN(config=config, model_dir=args.logs)
+    model_dir = args.logs
+    model = modellib.MaskRCNN(config=config, model_dir=model_dir)
 
     if config.GPU_COUNT:
         model = model.cuda()
@@ -350,7 +366,7 @@ if __name__ == '__main__':
         model.train_model(dataset_train, dataset_val,
                           learning_rate=config.LEARNING_RATE,
                           epochs=40,
-                          layers='heads')
+                          layers='heads', seed=args.random)
 
         # Training - Stage 2
         # Fine tune layers from ResNet stage 4 and up
@@ -358,7 +374,7 @@ if __name__ == '__main__':
         model.train_model(dataset_train, dataset_val,
                           learning_rate=config.LEARNING_RATE,
                           epochs=120,
-                          layers='4+')
+                          layers='4+', seed=args.random)
 
         # Training - Stage 3
         # Fine tune all layers
@@ -366,13 +382,13 @@ if __name__ == '__main__':
         model.train_model(dataset_train, dataset_val,
                           learning_rate=config.LEARNING_RATE / 10,
                           epochs=160,
-                          layers='all')
+                          layers='all', seed=args.random)
 
     if args.command == "evaluate":
         # Change output to text file
         with open("{}/evaluate_{}-{:%Y%m%dT%H%M}.txt".format(model_dir, args.val_test,
-                                                             datetime.datetime.now()), 'w') as f:
-            sys.stdout = f
+                                                             datetime.datetime.now()), 'w') as file:
+            sys.stdout = file
 
             print("Command: ", args.command)
             print("Model: ", args.model)
@@ -381,6 +397,7 @@ if __name__ == '__main__':
             print("Evaluate with:  {} set".format(args.val_test))
 
             config.display()
+            print("Random seed PyTorch, NumPy, and random set to {}".format(args.random))
 
             # Load weights
             print("Loading weights ", model_path)

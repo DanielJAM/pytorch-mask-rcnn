@@ -336,6 +336,7 @@ def clip_boxes(boxes, window):
     return boxes
 
 
+# noinspection PyUnresolvedReferences
 def proposal_layer(inputs, proposal_count, nms_threshold, anchors, config=None):
     """Receives anchor scores and selects a subset to pass as proposals
     to the second stage. Filtering is done based on anchor scores and
@@ -370,7 +371,7 @@ def proposal_layer(inputs, proposal_count, nms_threshold, anchors, config=None):
     scores, order = scores.sort(descending=True)
     order = order[:pre_nms_limit]
     scores = scores[:pre_nms_limit]
-    deltas = deltas[order.data, :]  # TODO: Support batch size > 1 ff.
+    deltas = deltas[order.data, :]
     anchors = anchors[order.data, :]
 
     # Apply deltas to anchors to get refined anchors.
@@ -1102,7 +1103,7 @@ def load_image_gt(dataset, config, image_id, augment=False):
     return image, image_meta, class_ids, bboxes
 
 
-def build_rpn_targets(image_shape, anchors, gt_class_ids, gt_boxes, config):
+def build_rpn_targets(anchors, gt_boxes, config):
     """Given the anchors and GT boxes, compute overlaps and identify positive
     anchors and deltas to refine them to match their corresponding GT boxes.
 
@@ -1120,23 +1121,7 @@ def build_rpn_targets(image_shape, anchors, gt_class_ids, gt_boxes, config):
     # RPN bounding boxes: [max anchors per image, (dy, dx, log(dh), log(dw))]
     rpn_bbox = np.zeros((config.RPN_TRAIN_ANCHORS_PER_IMAGE, 4))
 
-    # Handle COCO crowds
-    # A crowd box in COCO is a bounding box around several instances. Exclude
-    # them from training. A crowd box is given a negative class ID.
-    crowd_ix = np.where(gt_class_ids < 0)[0]
-    if crowd_ix.shape[0] > 0:
-        # Filter out crowds from ground truth class IDs and boxes
-        non_crowd_ix = np.where(gt_class_ids > 0)[0]
-        crowd_boxes = gt_boxes[crowd_ix]
-        gt_class_ids = gt_class_ids[non_crowd_ix]
-        gt_boxes = gt_boxes[non_crowd_ix]
-        # Compute overlaps with crowd boxes [anchors, crowds]
-        crowd_overlaps = utils.compute_overlaps(anchors, crowd_boxes)
-        crowd_iou_max = np.amax(crowd_overlaps, axis=1)
-        no_crowd_bool = (crowd_iou_max < 0.001)
-    else:
-        # All anchors don't intersect a crowd
-        no_crowd_bool = np.ones([anchors.shape[0]], dtype=bool)
+    no_crowd_bool = np.ones([anchors.shape[0]], dtype=bool)
 
     # Compute overlaps [num_anchors, num_gt_boxes]
     overlaps = utils.compute_overlaps(anchors, gt_boxes)
@@ -1268,8 +1253,8 @@ class Dataset(torch.utils.data.Dataset):
             return None
 
         # RPN Targets
-        rpn_match, rpn_bbox = build_rpn_targets(image.shape, self.anchors,
-                                                gt_class_ids, gt_boxes, self.config)
+        rpn_match, rpn_bbox = build_rpn_targets(self.anchors,
+                                                gt_boxes, self.config)
 
         # If more instances than fits in the array, sub-sample from them.
         if gt_boxes.shape[0] > self.config.MAX_GT_INSTANCES:
@@ -1381,7 +1366,7 @@ class MaskRCNN(nn.Module):
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
 
-    def set_trainable(self, layer_regex, model=None, indent=0, verbose=1):
+    def set_trainable(self, layer_regex):
         """Sets model layers as trainable if their names match
         the given regular expression.
         """
@@ -1567,18 +1552,6 @@ class MaskRCNN(nn.Module):
             # output is [batch, num_detections, (y1, x1, y2, x2, class_id, score)] in image coordinates
             detections = detection_layer(self.config, rpn_rois, mrcnn_class, mrcnn_bbox, image_metas)
 
-            # Convert boxes to normalized coordinates
-            # TODO: let DetectionLayer return normalized coordinates to avoid
-            #       unnecessary conversions
-            h, w = self.config.IMAGE_SHAPE[:2]
-            scale = Variable(torch.from_numpy(np.array([h, w, h, w])).float(), requires_grad=False)
-            if self.config.GPU_COUNT:
-                scale = scale.cuda()
-            detection_boxes = detections[:, :4] / scale
-
-            # Add back batch dimension
-            detection_boxes = detection_boxes.unsqueeze(0)
-
             # Add back batch dimension
             detections = detections.unsqueeze(0)
 
@@ -1605,11 +1578,9 @@ class MaskRCNN(nn.Module):
 
             if not rois.nelement():
                 mrcnn_class_logits = Variable(torch.FloatTensor())
-                mrcnn_class = Variable(torch.IntTensor())
                 mrcnn_bbox = Variable(torch.FloatTensor())
                 if self.config.GPU_COUNT:
                     mrcnn_class_logits = mrcnn_class_logits.cuda()
-                    mrcnn_class = mrcnn_class.cuda()
                     mrcnn_bbox = mrcnn_bbox.cuda()
             else:
                 # Network Heads
@@ -1618,7 +1589,7 @@ class MaskRCNN(nn.Module):
 
             return [rpn_class_logits, rpn_bbox, target_class_ids, mrcnn_class_logits, target_deltas, mrcnn_bbox]
 
-    def train_model(self, train_dataset, val_dataset, learning_rate, epochs, layers):
+    def train_model(self, train_dataset, val_dataset, learning_rate, epochs, layers, seed):
         """Train the model.
         train_dataset, val_dataset: Training and validation Dataset objects.
         learning_rate: The learning rate to train with
@@ -1654,9 +1625,11 @@ class MaskRCNN(nn.Module):
 
         # Data generators
         train_set = Dataset(train_dataset, self.config, augment=True)
-        train_generator = torch.utils.data.DataLoader(train_set, batch_size=1, shuffle=True, num_workers=4)
+        train_generator = torch.utils.data.DataLoader(train_set, batch_size=1, shuffle=True, num_workers=4,
+                                                      worker_init_fn=random.seed(seed))
         val_set = Dataset(val_dataset, self.config, augment=True)
-        val_generator = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=True, num_workers=4)
+        val_generator = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=True, num_workers=4,  # have 20 cores
+                                                    worker_init_fn=random.seed(seed))
 
         # Train
         log("\nStarting at epoch {}. LR={}\n".format(self.epoch + 1, learning_rate))
@@ -1923,7 +1896,6 @@ class MaskRCNN(nn.Module):
             boxes = np.delete(boxes, exclude_ix, axis=0)
             class_ids = np.delete(class_ids, exclude_ix, axis=0)
             scores = np.delete(scores, exclude_ix, axis=0)
-            N = class_ids.shape[0]
 
         return boxes, class_ids, scores
 
