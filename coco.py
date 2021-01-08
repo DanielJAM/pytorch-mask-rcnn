@@ -295,7 +295,7 @@ if __name__ == '__main__':
         config = CocoConfig()
 
         # Add starting model name to log folder
-        if 'args.model' in locals():
+        if args.model:
             start_model_name = args.model
             if args.model[-3:] == 'pth':
                 split_path = start_model_name.split('/')
