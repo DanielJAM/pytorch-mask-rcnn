@@ -293,6 +293,17 @@ if __name__ == '__main__':
     # Configurations
     if args.command == "train":
         config = CocoConfig()
+
+        # Add starting model name to log folder
+        if 'args.model' in locals():
+            start_model_name = args.model
+            if args.model[-3:] == 'pth':
+                split_path = start_model_name.split('/')
+                start_model_name = os.path.join(split_path[-2], split_path[-1])  # add last folder and model name
+        else:
+            start_model_name = ""
+        config.NAME = config.NAME + start_model_name
+
     else:
         class InferenceConfig(CocoConfig):
             # Set batch size to 1 since we'll be running inference on
