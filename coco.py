@@ -29,6 +29,9 @@ Usage: import the module (see Jupyter notebooks for examples), or run from
 
     # Run COCO evaluation with test set
     evaluate --dataset=../Master_Thesis_GvA_project/data/4_external --model=last --val_test=test
+
+    # Close to deterministic behaviour by setting seed for both train and evaluate
+    --random=1
 """
 
 import os
