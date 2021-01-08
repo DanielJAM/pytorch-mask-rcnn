@@ -302,7 +302,7 @@ if __name__ == '__main__':
                 start_model_name = os.path.join(split_path[-2], split_path[-1])  # add last folder and model name
         else:
             start_model_name = ""
-        config.NAME = config.NAME + start_model_name
+        config.NAME = config.NAME + "_" + start_model_name + "-"
 
     else:
         class InferenceConfig(CocoConfig):
