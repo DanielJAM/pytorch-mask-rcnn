@@ -8,6 +8,7 @@ Written by Waleed Abdulla
 """
 
 import datetime
+import time
 import math
 import os
 import random
@@ -1650,13 +1651,22 @@ class MaskRCNN(nn.Module):
         for epoch in range(self.epoch + 1, epochs + 1):
             log("Epoch {}/{}.".format(epoch, epochs))
 
+            start_train = round(time.process_time(), 2)
+            print("start training: ", start_train)
+
             # Training
             loss, loss_rpn_class, loss_rpn_bbox, loss_mrcnn_class, loss_mrcnn_bbox = \
                 self.train_epoch(train_generator, optimizer, self.config.STEPS_PER_EPOCH)
 
+            end_train = round(time.process_time(), 2)
+            print("Training took:", end_train - start_train, "seconds\ttotal elapsed:", end_train)
+
             # Validation
             val_loss, val_loss_rpn_class, val_loss_rpn_bbox, val_loss_mrcnn_class, val_loss_mrcnn_bbox = \
                 self.valid_epoch(val_generator, self.config.VALIDATION_STEPS)
+
+            end_validation = round(time.process_time(), 2)
+            print("Validation took:", end_validation - end_train, "seconds\ttotal elapsed:", end_validation)
 
             # Statistics
             self.loss_history.append(
@@ -1665,8 +1675,14 @@ class MaskRCNN(nn.Module):
                 [val_loss, val_loss_rpn_class, val_loss_rpn_bbox, val_loss_mrcnn_class, val_loss_mrcnn_bbox])
             visualize.plot_loss(self.loss_history, self.val_loss_history, save=True, log_dir=self.log_dir)
 
+            statistics = round(time.process_time(), 2)
+            print("Statistics took:", statistics - end_validation, "seconds\ttotal elapsed:", statistics)
+
             # Save model
             torch.save(self.state_dict(), self.checkpoint_path.format(epoch))
+
+            saving = round(time.process_time(), 2)
+            print("Saving took:", saving - end_validation, "seconds\ttotal elapsed:", saving)
 
         self.epoch = epochs
 
@@ -1743,7 +1759,7 @@ class MaskRCNN(nn.Module):
             loss_mrcnn_bbox_sum += mrcnn_bbox_loss.data.cpu().item() / steps
 
             # Break after 'steps' steps
-            if step == steps - 1:
+            if step >= steps - 1:
                 break
             step += 1
 
