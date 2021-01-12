@@ -1824,7 +1824,7 @@ class MaskRCNN(nn.Module):
             loss_mrcnn_bbox_sum += mrcnn_bbox_loss.data.cpu().item() / steps
 
             # Break after 'steps' steps
-            if step == steps - 1:
+            if step >= steps - 1:
                 break
             step += 1
 
