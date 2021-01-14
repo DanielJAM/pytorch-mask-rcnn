@@ -1290,15 +1290,16 @@ class MaskRCNN(nn.Module):
     """Encapsulates the Mask RCNN model functionality.
     """
 
-    def __init__(self, config, model_dir):
+    def __init__(self, config, models_dir):
         """
         config: A Sub-class of the Config class
-        model_dir: Directory to save training logs and trained weights
+        models_dir: Directory where the directories of each model is stored
         """
         super(MaskRCNN, self).__init__()
         self.config = config
-        self.model_dir = model_dir
+        self.models_dir = models_dir
         self.set_log_dir()
+        self.model_dir = self.log_dir
         self.build(config=config)
         self.initialize_weights()
         self.loss_history = []
@@ -1396,16 +1397,18 @@ class MaskRCNN(nn.Module):
             # Continue from where we left off. Get epoch and date from the file name
             # A sample model path might look like:
             # /path/to/logs/coco20171029T2315/mask_rcnn_coco_0001.h5
-            regex = r".*/\w+(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/mask\_rcnn\_\w+(\d{4})\.pth"
+            regex = r".*/\w+\_\w+\-(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/mask\_rcnn\_\w+\_(\d{4})\.pth"
             m = re.match(regex, model_path)
             if m:
                 now = datetime.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)),
                                         int(m.group(4)), int(m.group(5)))
                 self.epoch = int(m.group(6))
 
+            self.log_dir = self.model_dir
         # Directory for training logs
-        self.log_dir = os.path.join(self.model_dir, "{}{:%Y%m%dT%H%M}".format(
-            self.config.NAME.lower(), now))
+        else:
+            self.log_dir = os.path.join(self.models_dir, "{}{:%Y%m%dT%H%M}".format(
+                self.config.NAME.lower(), now))
 
         # Path to save after each epoch. Include placeholders that get filled by Keras.
         self.checkpoint_path = os.path.join(self.log_dir, "mask_rcnn_{}_*epoch*.pth".format(
@@ -1421,14 +1424,14 @@ class MaskRCNN(nn.Module):
             checkpoint_path: the path to the last checkpoint file
         """
         # Get directory names. Each directory corresponds to a model
-        dir_names = next(os.walk(self.model_dir))[1]
+        dir_names = next(os.walk(self.models_dir))[1]
         key = self.config.NAME.lower()
         dir_names = filter(lambda f: f.startswith(key), dir_names)
-        dir_names = sorted(dir_names)
+        dir_names = sorted(dir_names, key=lambda f: f[-13:])
         if not dir_names:
             return None, None
         # Pick last directory
-        dir_name = os.path.join(self.model_dir, dir_names[-1])
+        dir_name = os.path.join(self.models_dir, dir_names[-1])
         # Find the last checkpoint
         checkpoints = next(os.walk(dir_name))[2]
         checkpoints = filter(lambda f: f.startswith("mask_rcnn"), checkpoints)
@@ -1744,12 +1747,14 @@ class MaskRCNN(nn.Module):
                 batch_count = 0
 
             # Progress
-            print_progress_bar(step + 1, steps, prefix="\t{}/{}".format(step + 1, steps),
+            if step == steps or step % 5 == 0:
+                print_progress_bar(step + 1, steps, prefix="\t{}/{}".format(step + 1, steps),
                                suffix="Complete - loss: {:.5f} - rpn_class_loss: {:.5f} - rpn_bbox_loss: {:.5f} - "
                                       "mrcnn_class_loss: {:.5f} - mrcnn_bbox_loss: {:.5f}".format(
                                    loss.data.cpu().item(), rpn_class_loss.data.cpu().item(),
                                    rpn_bbox_loss.data.cpu().item(),
                                    mrcnn_class_loss.data.cpu().item(), mrcnn_bbox_loss.data.cpu().item()), length=10)
+
 
             # Statistics
             loss_sum += loss.data.cpu().item() / steps
@@ -1809,12 +1814,13 @@ class MaskRCNN(nn.Module):
                 loss = rpn_class_loss + rpn_bbox_loss + mrcnn_class_loss + mrcnn_bbox_loss
 
             # Progress
-            print_progress_bar(step + 1, steps, prefix="\t{}/{}".format(step + 1, steps),
-                               suffix="Complete - loss: {:.5f} - rpn_class_loss: {:.5f} - rpn_bbox_loss: {:.5f} - "
-                                      "mrcnn_class_loss: {:.5f} - mrcnn_bbox_loss: {:.5f}".format(
-                                   loss.data.cpu().item(), rpn_class_loss.data.cpu().item(),
-                                   rpn_bbox_loss.data.cpu().item(),
-                                   mrcnn_class_loss.data.cpu().item(), mrcnn_bbox_loss.data.cpu().item()), length=10)
+            if step == steps or step % 5 == 0:
+                print_progress_bar(step + 1, steps, prefix="\t{}/{}".format(step + 1, steps),
+                                   suffix="Complete - loss: {:.5f} - rpn_class_loss: {:.5f} - rpn_bbox_loss: {:.5f} - "
+                                          "mrcnn_class_loss: {:.5f} - mrcnn_bbox_loss: {:.5f}".format(
+                                       loss.data.cpu().item(), rpn_class_loss.data.cpu().item(),
+                                       rpn_bbox_loss.data.cpu().item(),
+                                       mrcnn_class_loss.data.cpu().item(), mrcnn_bbox_loss.data.cpu().item()), length=10)
 
             # Statistics
             loss_sum += loss.data.cpu().item() / steps
