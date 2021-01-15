@@ -295,7 +295,7 @@ if __name__ == '__main__':
         config = CocoConfig()
 
         # Add starting model name to log folder
-        if args.model:
+        if isinstance(args.model, str):
             start_model_name = args.model
             if args.model[-3:] == 'pth':
                 split_path = start_model_name.split('/')
@@ -327,22 +327,27 @@ if __name__ == '__main__':
         print("Random seed PyTorch, NumPy, and random set to {}".format(args.random))
 
     # Create model
-    model_dir = args.logs
-    model = modellib.MaskRCNN(config=config, model_dir=model_dir)
+    model = modellib.MaskRCNN(config=config, models_dir=args.logs)
 
     if config.GPU_COUNT:
         model = model.cuda()
 
     # Select weights file to load
-    if args.model:
-        if args.model.lower() == "last":
+    if isinstance(args.model, str):
+        model_command = args.model.lower()
+        if model_command == "last":
             # Find last trained weights
-            model_dir, model_path = model.find_last()
-        elif args.model.lower() == "coco":
+            model.model_dir, model_path = model.find_last()
+        elif model_command[-3:] == 'pth':
+            model_path = args.model
+            model.model_dir = model_path.split(os.path.basename(model_path))[0]
+        elif model_command == "coco":
             model_path = COCO_MODEL_PATH
-        elif args.model.lower() == "imagenet":
+            model_dir = os.path.join(model_path.split(os.path.basename(model_path))[0], model_command)
+        elif model_command == "imagenet":
             # Start from ImageNet trained weights
             model_path = config.IMAGENET_MODEL_PATH
+            model_dir = os.path.join(model_path.split(os.path.basename(model_path))[0], model_command)
         else:
             model_path = args.model
     else:
@@ -393,16 +398,19 @@ if __name__ == '__main__':
                           layers='4+', seed=args.random)
 
         # Training - Stage 3
-        # Fine tune all layers
+        # Fine tune all layers - at 75% reduce lr 10-fold
         print("Fine tune all layers")
         model.train_model(dataset_train, dataset_val,
                           learning_rate=config.LEARNING_RATE / 10,
                           epochs=160,
                           layers='all', seed=args.random)
 
-    if args.command == "evaluate":
+    elif args.command == "evaluate":
+        model.load_weights(model_path)
+
+        model.model_dir = model_dir
         # Change output to text file
-        with open("{}/evaluate_{}-{:%Y%m%dT%H%M}.txt".format(model_dir, args.val_test,
+        with open("{}/evaluate_{}-{:%Y%m%dT%H%M}.txt".format(model.model_dir, args.val_test,
                                                              datetime.datetime.now()), 'w') as file:
             sys.stdout = file
 
@@ -413,11 +421,10 @@ if __name__ == '__main__':
             print("Evaluate with:  {} set".format(args.val_test))
 
             config.display()
-            print("Random seed PyTorch, NumPy, and random set to {}".format(args.random))
+            print("Random seed PyTorch, NumPy, and random set to: {}".format(args.random))
 
             # Load weights
             print("Loading weights ", model_path)
-            model.load_weights(model_path)
 
             # Dataset used for evaluation
             dataset_val = CocoDataset()

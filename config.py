@@ -132,17 +132,17 @@ class Config(object):
     DETECTION_MIN_CONFIDENCE = 0.7  # 0.9
 
     # Non-maximum suppression threshold for detection
-    DETECTION_NMS_THRESHOLD = 0.3
+    DETECTION_NMS_THRESHOLD = 0.3  # 0.3/0.5 by Mask-RCNN
 
     # Learning rate and momentum
     # The Mask RCNN paper uses lr=0.02, but on TensorFlow it causes
     # weights to explode. Likely due to differences in optimiser
     # implementation.
-    LEARNING_RATE = 0.001  # 0.001 / 0.00001
-    LEARNING_MOMENTUM = 0.9
+    LEARNING_RATE = 0.001  # 0.001 / 0.00001,  0.02 in Mask-RCNN paper
+    LEARNING_MOMENTUM = 0.9  # 0.9 Mask-RCNN paper
 
     # Weight decay regularization
-    WEIGHT_DECAY = 0.0001
+    WEIGHT_DECAY = 0.0001  # 0.0001 Mask-RCNN paper
 
     # Use RPN ROIs or externally generated ROIs for training
     # Keep this True for most situations. Set to False if you want to train
@@ -183,8 +183,9 @@ class Config(object):
 
     def to_txt(self, log_dir):
         """Save Configuration values in text file."""
-        config_txt = open(os.path.join(log_dir + "/config.txt"), "x")
-        for a in dir(self):
-            if not a.startswith("__") and not callable(getattr(self, a)):
-                config_txt.write("{:30} {}".format(a, getattr(self, a)))
-            config_txt.write("\n")
+        if not os.path.exists(log_dir + "/config.txt"):
+            config_txt = open(os.path.join(log_dir + "/config.txt"), "x")
+            for a in dir(self):
+                if not a.startswith("__") and not callable(getattr(self, a)):
+                    config_txt.write("{:30} {}\n".format(a, getattr(self, a)))
+                # config_txt.write("\n")
