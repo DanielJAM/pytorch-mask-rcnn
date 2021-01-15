@@ -1397,7 +1397,7 @@ class MaskRCNN(nn.Module):
             # Continue from where we left off. Get epoch and date from the file name
             # A sample model path might look like:
             # /path/to/logs/coco20171029T2315/mask_rcnn_coco_0001.h5
-            regex = r".*/\w+\_\w+\-(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/mask\_rcnn\_\w+\_(\d{4})\.pth"
+            regex = r".*/\w+\_\w+\-(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/mask\_rcnn\_(\d{4})\.pth"
             m = re.match(regex, model_path)
             if m:
                 now = datetime.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)),
@@ -1411,8 +1411,7 @@ class MaskRCNN(nn.Module):
                 self.config.NAME.lower(), now))
 
         # Path to save after each epoch. Include placeholders that get filled by Keras.
-        self.checkpoint_path = os.path.join(self.log_dir, "mask_rcnn_{}_*epoch*.pth".format(
-            self.config.NAME.lower()))
+        self.checkpoint_path = os.path.join(self.log_dir, "mask_rcnn_*epoch*.pth")
         self.checkpoint_path = self.checkpoint_path.replace(
             "*epoch*", "{:04d}")
 
@@ -1425,8 +1424,8 @@ class MaskRCNN(nn.Module):
         """
         # Get directory names. Each directory corresponds to a model
         dir_names = next(os.walk(self.models_dir))[1]
-        key = self.config.NAME.lower()
-        dir_names = filter(lambda f: f.startswith(key), dir_names)
+        # key = self.config.NAME.lower()
+        # dir_names = filter(lambda f: f.startswith(key), dir_names)
         dir_names = sorted(dir_names, key=lambda f: f[-13:])
         if not dir_names:
             return None, None
@@ -1749,12 +1748,12 @@ class MaskRCNN(nn.Module):
             # Progress
             if step == steps or step % 5 == 0:
                 print_progress_bar(step + 1, steps, prefix="\t{}/{}".format(step + 1, steps),
-                               suffix="Complete - loss: {:.5f} - rpn_class_loss: {:.5f} - rpn_bbox_loss: {:.5f} - "
-                                      "mrcnn_class_loss: {:.5f} - mrcnn_bbox_loss: {:.5f}".format(
-                                   loss.data.cpu().item(), rpn_class_loss.data.cpu().item(),
-                                   rpn_bbox_loss.data.cpu().item(),
-                                   mrcnn_class_loss.data.cpu().item(), mrcnn_bbox_loss.data.cpu().item()), length=10)
-
+                                   suffix="Complete - loss: {:.5f} - rpn_class_loss: {:.5f} - rpn_bbox_loss: {:.5f} - "
+                                          "mrcnn_class_loss: {:.5f} - mrcnn_bbox_loss: {:.5f}".format(
+                                       loss.data.cpu().item(), rpn_class_loss.data.cpu().item(),
+                                       rpn_bbox_loss.data.cpu().item(),
+                                       mrcnn_class_loss.data.cpu().item(), mrcnn_bbox_loss.data.cpu().item()),
+                                   length=10)
 
             # Statistics
             loss_sum += loss.data.cpu().item() / steps
@@ -1820,7 +1819,8 @@ class MaskRCNN(nn.Module):
                                           "mrcnn_class_loss: {:.5f} - mrcnn_bbox_loss: {:.5f}".format(
                                        loss.data.cpu().item(), rpn_class_loss.data.cpu().item(),
                                        rpn_bbox_loss.data.cpu().item(),
-                                       mrcnn_class_loss.data.cpu().item(), mrcnn_bbox_loss.data.cpu().item()), length=10)
+                                       mrcnn_class_loss.data.cpu().item(), mrcnn_bbox_loss.data.cpu().item()),
+                                   length=10)
 
             # Statistics
             loss_sum += loss.data.cpu().item() / steps

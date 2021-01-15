@@ -334,17 +334,22 @@ if __name__ == '__main__':
 
     # Select weights file to load
     if isinstance(args.model, str):
-        if args.model.lower() == "last":
+        model_command = args.model.lower()
+        if model_command == "last":
             # Find last trained weights
             model.model_dir, model_path = model.find_last()
-        elif args.model.lower() == "coco":
-            model_path = COCO_MODEL_PATH
-        elif args.model.lower() == "imagenet":
-            # Start from ImageNet trained weights
-            model_path = config.IMAGENET_MODEL_PATH
-        else:
+        elif model_command[-3:] == 'pth':
             model_path = args.model
             model.model_dir = model_path.split(os.path.basename(model_path))[0]
+        elif model_command == "coco":
+            model_path = COCO_MODEL_PATH
+            model_dir = os.path.join(model_path.split(os.path.basename(model_path))[0], model_command)
+        elif model_command == "imagenet":
+            # Start from ImageNet trained weights
+            model_path = config.IMAGENET_MODEL_PATH
+            model_dir = os.path.join(model_path.split(os.path.basename(model_path))[0], model_command)
+        else:
+            model_path = args.model
     else:
         model_path = ""
 
@@ -393,7 +398,7 @@ if __name__ == '__main__':
                           layers='4+', seed=args.random)
 
         # Training - Stage 3
-        # Fine tune all layers
+        # Fine tune all layers - at 75% reduce lr 10-fold
         print("Fine tune all layers")
         model.train_model(dataset_train, dataset_val,
                           learning_rate=config.LEARNING_RATE / 10,
@@ -401,6 +406,9 @@ if __name__ == '__main__':
                           layers='all', seed=args.random)
 
     elif args.command == "evaluate":
+        model.load_weights(model_path)
+
+        model.model_dir = model_dir
         # Change output to text file
         with open("{}/evaluate_{}-{:%Y%m%dT%H%M}.txt".format(model.model_dir, args.val_test,
                                                              datetime.datetime.now()), 'w') as file:
@@ -417,7 +425,6 @@ if __name__ == '__main__':
 
             # Load weights
             print("Loading weights ", model_path)
-            model.load_weights(model_path)
 
             # Dataset used for evaluation
             dataset_val = CocoDataset()
