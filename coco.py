@@ -408,7 +408,8 @@ if __name__ == '__main__':
     elif args.command == "evaluate":
         model.load_weights(model_path)
 
-        model.model_dir = model_dir
+        if 'model_dir' in locals():
+            model.model_dir = model_dir
         # Change output to text file
         with open("{}/evaluate_{}-{:%Y%m%dT%H%M}.txt".format(model.model_dir, args.val_test,
                                                              datetime.datetime.now()), 'w') as file:
