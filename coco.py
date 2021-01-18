@@ -316,9 +316,8 @@ if __name__ == '__main__':
             IMAGES_PER_GPU = 1
             DETECTION_MIN_CONFIDENCE = 0
 
-
         config = InferenceConfig()
-
+    # Save run config commands for reference
     config.RUN_CONFIG = args.__dict__
 
     # Set random seed
@@ -348,6 +347,7 @@ if __name__ == '__main__':
             model_path = args.model
             model.model_dir = model_path.split(os.path.basename(model_path))[0]
         elif model_command == "coco":
+            # Start from COCO trained weights - not working yet
             model_path = COCO_MODEL_PATH
             model_dir = os.path.join(model_path.split(os.path.basename(model_path))[0], model_command)
         elif model_command == "imagenet":
@@ -388,7 +388,6 @@ if __name__ == '__main__':
 
         # TRAINING SCHEDULES
         # at 75 % reduce lr 10 fold
-
         if args.schedule == 'example':
             # Training - Stage 1
             print("Training network heads")
