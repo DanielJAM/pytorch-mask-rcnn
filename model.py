@@ -729,7 +729,7 @@ def refine_detections(rois, probs, deltas, window, config):
     # Round and cast to int since we're dealing with pixels now
     refined_rois = torch.round(refined_rois)
 
-    # TODO: Filter out boxes with zero area
+    # TO_old_DO: Filter out boxes with zero area
 
     # Filter out background boxes
     keep_bool = class_ids > 0
@@ -1141,7 +1141,7 @@ def build_rpn_targets(anchors, gt_boxes, config):
     anchor_iou_max = overlaps[np.arange(overlaps.shape[0]), anchor_iou_argmax]
     rpn_match[(anchor_iou_max < 0.3) & no_crowd_bool] = -1
     # 2. Set an anchor for each GT box (regardless of IoU value).
-    # TODO: If multiple anchors have the same IoU match all of them
+    # TO_old_DO: If multiple anchors have the same IoU match all of them
     gt_iou_argmax = np.argmax(overlaps, axis=0)
     rpn_match[gt_iou_argmax] = 1
     # 3. Set anchors with high overlap as positive.
@@ -1168,7 +1168,7 @@ def build_rpn_targets(anchors, gt_boxes, config):
     # to match the corresponding GT boxes.
     ids = np.where(rpn_match == 1)[0]
     ix = 0  # index into rpn_bbox
-    # TODO: use box_refinement() rather than duplicating the code here
+    # TO_old_DO: use box_refinement() rather than duplicating the code here
     for i, a in zip(ids, anchors[ids]):
         # Closest gt box (it might have IoU < 0.7)
         gt = gt_boxes[anchor_iou_argmax[i]]
@@ -1324,7 +1324,7 @@ class MaskRCNN(nn.Module):
         C1, C2, C3, C4, C5 = resnet.stages()
 
         # Top-down Layers
-        # TODO: add assert to verify feature map sizes match what's in config
+        # TO_old_DO: add assert to verify feature map sizes match what's in config
         self.fpn = FPN(C1, C2, C3, C4, C5, out_channels=256)
 
         # Generate Anchors
@@ -1854,7 +1854,7 @@ class MaskRCNN(nn.Module):
         windows = []
         for image in images:
             # Resize image to fit the model expected size
-            # TODO: move resizing to mold_image()
+            # TO_old_DO: move resizing to mold_image()
             molded_image, window, scale, padding = utils.resize_image(
                 image,
                 min_dim=self.config.IMAGE_MIN_DIM,
