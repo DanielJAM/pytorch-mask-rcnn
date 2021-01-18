@@ -287,6 +287,10 @@ if __name__ == '__main__':
                         default=None,
                         metavar='Any integer',
                         help='Set random seed for consistent results')
+    parser.add_argument('--schedule', required=False,
+                        default='example',
+                        metavar='"example", "all", "3+", "4+", "heads"',
+                        help='specify training schedule')
 
     args = parser.parse_args()
 
@@ -314,6 +318,8 @@ if __name__ == '__main__':
 
 
         config = InferenceConfig()
+
+    config.RUN_CONFIG = args.__dict__
 
     # Set random seed
     if args.random is not None:

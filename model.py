@@ -1627,6 +1627,7 @@ class MaskRCNN(nn.Module):
             layers = layer_regex[layers]
 
         # Data generators
+        # TODO: try with more workers
         train_set = Dataset(train_dataset, self.config, augment=True)
         train_generator = torch.utils.data.DataLoader(train_set, batch_size=1, shuffle=True, num_workers=4,
                                                       worker_init_fn=random.seed(seed))
