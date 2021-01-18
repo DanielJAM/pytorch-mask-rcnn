@@ -1396,7 +1396,7 @@ class MaskRCNN(nn.Module):
         if model_path:
             # Continue from where we left off. Get epoch and date from the file name
             # A sample model path might look like:
-            # /path/to/logs/coco20171029T2315/mask_rcnn_coco_0001.h5
+            # /path/to/logs/coco_type-20171029T2315/mask_rcnn_coco_0001.h5
             regex = r".*/\w+\_\w+\-(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/mask\_rcnn\_(\d{4})\.pth"
             m = re.match(regex, model_path)
             if m:
@@ -1687,7 +1687,9 @@ class MaskRCNN(nn.Module):
             # saving = round(time.process_time(), 2)
             # print("Saving took:", saving - end_validation, "seconds\ttotal elapsed:", saving)
 
-        self.epoch = epochs
+        # Only update if not continuing from an already higher epoch, otherwise return to correct part for this epoch
+        if self.epoch < epochs:
+            self.epoch = epochs
 
     def train_epoch(self, datagenerator, optimizer, steps):
         batch_count = 0
