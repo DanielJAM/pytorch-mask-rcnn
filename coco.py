@@ -386,30 +386,59 @@ if __name__ == '__main__':
         dataset_val.load_coco(args.dataset, "validation")
         dataset_val.prepare()
 
-        # *** This training schedule is an example. Update to your needs ***
+        # TRAINING SCHEDULES
+        # at 75 % reduce lr 10 fold
 
-        # Training - Stage 1
-        print("Training network heads")
-        model.train_model(dataset_train, dataset_val,
-                          learning_rate=config.LEARNING_RATE,
-                          epochs=40,
-                          layers='heads', seed=args.random)
+        if args.schedule == 'example':
+            # Training - Stage 1
+            print("Training network heads")
+            model.train_model(dataset_train, dataset_val,
+                              learning_rate=config.LEARNING_RATE,
+                              epochs=40,
+                              layers='heads', seed=args.random)
 
-        # Training - Stage 2
-        # Fine tune layers from ResNet stage 4 and up
-        print("Fine tune Resnet stage 4 and up")
-        model.train_model(dataset_train, dataset_val,
-                          learning_rate=config.LEARNING_RATE,
-                          epochs=120,
-                          layers='4+', seed=args.random)
+            # Training - Stage 2
+            # Fine tune layers from ResNet stage 4 and up
+            print("Fine tune Resnet stage 4 and up")
+            model.train_model(dataset_train, dataset_val,
+                              learning_rate=config.LEARNING_RATE,
+                              epochs=120,
+                              layers='4+', seed=args.random)
 
-        # Training - Stage 3
-        # Fine tune all layers - at 75% reduce lr 10-fold
-        print("Fine tune all layers")
-        model.train_model(dataset_train, dataset_val,
-                          learning_rate=config.LEARNING_RATE / 10,
-                          epochs=160,
-                          layers='all', seed=args.random)
+            # Training - Stage 3
+            # Fine tune all layers
+            print("Fine tune all layers - lr / 10")
+            model.train_model(dataset_train, dataset_val,
+                              learning_rate=config.LEARNING_RATE / 10,
+                              epochs=160,
+                              layers='all', seed=args.random)
+
+        elif args.schedule == 'all':
+            # Fine tune all layers, use with pre-trained imagenet or no pre-trained network
+            print("Fine tune all layers")
+            model.train_model(dataset_train, dataset_val,
+                              learning_rate=config.LEARNING_RATE,
+                              epochs=120,
+                              layers='all', seed=args.random)
+
+            print("Fine tune all layers - lr / 10")
+            model.train_model(dataset_train, dataset_val,
+                              learning_rate=config.LEARNING_RATE / 10,
+                              epochs=160,
+                              layers='all', seed=args.random)
+
+        elif args.schedule == '3+':
+            # Pre-trained imagenet schedule mask-rcnn
+            print("Fine tune Resnet stage 3 and up")
+            model.train_model(dataset_train, dataset_val,
+                              learning_rate=config.LEARNING_RATE,
+                              epochs=120,
+                              layers='3+', seed=args.random)
+            print("Fine tune Resnet stage 3 and up - lr / 10")
+            model.train_model(dataset_train, dataset_val,
+                              learning_rate=config.LEARNING_RATE / 10,
+                              epochs=160,
+                              layers='3+', seed=args.random)
 
     elif args.command == "evaluate":
         model.load_weights(model_path)
