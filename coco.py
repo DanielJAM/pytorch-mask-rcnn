@@ -102,7 +102,7 @@ class CocoDataset(utils.Dataset):
         subset: What to load (train, val, minival, valminusminival)
         year: What dataset year to load (2014, 2017) as a string, not an integer
         class_ids: If provided, only loads images that have the given classes.
-        class_map: TODO: Not implemented yet. Supports mapping classes from
+        class_map: XX Not implemented yet. Supports mapping classes from
             different datasets to the same class ID.
         return_coco: If True, returns the COCO object.
         auto_download: Automatically download and unzip MS-COCO images and annotations
@@ -316,9 +316,8 @@ if __name__ == '__main__':
             IMAGES_PER_GPU = 1
             DETECTION_MIN_CONFIDENCE = 0
 
-
         config = InferenceConfig()
-
+    # Save run config commands for reference
     config.RUN_CONFIG = args.__dict__
 
     # Set random seed
@@ -348,6 +347,7 @@ if __name__ == '__main__':
             model_path = args.model
             model.model_dir = model_path.split(os.path.basename(model_path))[0]
         elif model_command == "coco":
+            # Start from COCO trained weights - not working yet
             model_path = COCO_MODEL_PATH
             model_dir = os.path.join(model_path.split(os.path.basename(model_path))[0], model_command)
         elif model_command == "imagenet":
@@ -388,7 +388,6 @@ if __name__ == '__main__':
 
         # TRAINING SCHEDULES
         # at 75 % reduce lr 10 fold
-
         if args.schedule == 'example':
             # Training - Stage 1
             print("Training network heads")
