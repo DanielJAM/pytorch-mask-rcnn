@@ -11,6 +11,9 @@ Written by Waleed Abdulla
 Usage: import the module (see Jupyter notebooks for examples), or run from
        the command line as such:
 
+    # Train a new model from scratch
+    train --dataset=../Master_Thesis_GvA_project/data/4_external --model=none
+
     # Train a new model starting from pre-trained COCO weights
     CURRENTLY NOT WORKING: train --dataset=../Master_Thesis_GvA_project/data/4_external --model=coco
 
@@ -270,7 +273,7 @@ if __name__ == '__main__':
                         help='Directory of the MS-COCO dataset')
     parser.add_argument('--model', required=False,
                         metavar="/path/to/weights.pth",
-                        help="Path to weights .pth file, 'last', or 'imagenet'")
+                        help="Path to weights .pth file, 'none', 'last', or 'imagenet'")
     parser.add_argument('--logs', required=False,
                         default=DEFAULT_LOGS_DIR,
                         metavar="/path/to/logs/",
