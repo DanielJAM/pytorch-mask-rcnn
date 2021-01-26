@@ -1,19 +1,11 @@
 import os
-import sys
 import random
-import math
-import numpy as np
 import skimage.io
-import matplotlib
 import matplotlib.pyplot as plt
 
-import coco
-import utils
-import model as modellib
-import visualize
+from original import visualize as visualize, model as modellib, coco
 
 import torch
-
 
 # Root directory of the project
 ROOT_DIR = os.getcwd()
@@ -29,12 +21,15 @@ COCO_MODEL_PATH = os.path.join(ROOT_DIR, "models/mask_rcnn_coco.pth")
 # Directory of images to run detection on
 IMAGE_DIR = os.path.join(ROOT_DIR, "images")
 
+torch.backends.cudnn.benchmark = False
+
 class InferenceConfig(coco.CocoConfig):
     # Set batch size to 1 since we'll be running inference on
     # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
     # GPU_COUNT = 0 for CPU
     GPU_COUNT = 1
     IMAGES_PER_GPU = 1
+
 
 config = InferenceConfig()
 config.display()
