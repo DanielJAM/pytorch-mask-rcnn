@@ -9,13 +9,13 @@ Edited by Daniel Maaskant
 
 ------------------------------------------------------------
 
-Usage: import the module (see Jupyter notebooks for examples), or run from
-       the command line as such:
+Usage: import the module, or run from the command line as such:
 
     # Train a new model from scratch
     train --dataset=../Master_Thesis_GvA_project/data/4_external --model=none
 
     # Train a new model starting from pre-trained COCO weights
+    TODO: fix COCO .pth to match dimensions of this network
     CURRENTLY NOT WORKING: train --dataset=../Master_Thesis_GvA_project/data/4_external --model=coco
 
     # Train a new model starting from ImageNet weights
