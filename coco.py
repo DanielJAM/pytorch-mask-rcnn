@@ -365,6 +365,8 @@ if __name__ == '__main__':
 
     # Train or evaluate
     if args.command == "train":
+        start_time = time.process_time()
+
         print("Command: ", args.command)
         print("Model: ", args.model)
         print("Dataset: ", args.dataset)
@@ -442,6 +444,10 @@ if __name__ == '__main__':
                               learning_rate=config.LEARNING_RATE / 10,
                               epochs=160,
                               layers='3+', seed=args.random)
+
+        end_time = time.process_time()
+        with open(config.file, "a") as f:
+            f.write("\nTotal time elapsed: {}\n".format(round(end_time - start_time, 2)))
 
     elif args.command == "evaluate":
         model.load_weights(model_path)

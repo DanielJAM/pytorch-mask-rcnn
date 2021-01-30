@@ -168,7 +168,7 @@ class Config(object):
 
         # Input image size
         self.IMAGE_SHAPE = np.array(
-            [self.IMAGE_MAX_DIM, self.IMAGE_MIN_DIM, 3])
+            [self.IMAGE_MIN_DIM, self.IMAGE_MAX_DIM, 3])
             # MAX, MAX
 
         # Compute backbone size from input image size
@@ -176,6 +176,8 @@ class Config(object):
             [[int(math.ceil(self.IMAGE_SHAPE[0] / stride)),
               int(math.ceil(self.IMAGE_SHAPE[1] / stride))]
              for stride in self.BACKBONE_STRIDES])
+
+        self.file = ""
 
     def display(self):
         """Display Configuration values."""
@@ -187,8 +189,10 @@ class Config(object):
 
     def to_txt(self, log_dir):
         """Save Configuration values in text file."""
-        if not os.path.exists(log_dir + "/config.txt"):
-            config_txt = open(os.path.join(log_dir + "/config.txt"), "x")
+        if not self.file:
+            self.file = os.path.join(log_dir + "/config.txt")
+        if not os.path.exists(self.file):
+            config_txt = open(self.file, "x")
             for a in dir(self):
                 if not a.startswith("__") and not callable(getattr(self, a)):
                     config_txt.write("{:30} {}\n".format(a, getattr(self, a)))
