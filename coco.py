@@ -265,13 +265,13 @@ if __name__ == '__main__':
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(
-        description='Train Mask R-CNN on MS COCO.')
+        description='Train Mask R-CNN on a MS-COCO formatted dataset.')
     parser.add_argument("command",
                         metavar="<command>",
                         help="'train' or 'evaluate'")
     parser.add_argument('--dataset', required=True,
                         metavar="/path/to/coco/",
-                        help='Directory of the MS-COCO dataset')
+                        help='Directory of the MS-COCO formatted dataset')
     parser.add_argument('--model', required=False,
                         metavar="/path/to/weights.pth",
                         help="Path to weights .pth file, 'none', 'last', or 'imagenet'")
@@ -286,15 +286,15 @@ if __name__ == '__main__':
     parser.add_argument('--val_test', required=False,
                         default='validation',
                         metavar='"validation" or "test"',
-                        help="Evaluate with test or validation set")
+                        help="Evaluate with test or validation set (default=validation)")
     parser.add_argument('--random', required=False,
                         default=None,
                         metavar='Any integer',
-                        help='Set random seed for consistent results')
+                        help='Set random seed for consistent results (default=None)')
     parser.add_argument('--schedule', required=False,
                         default='example',
                         metavar='"example", "all", "3+", "4+", "heads"',
-                        help='specify training schedule')
+                        help='specify training schedule (default=example)')
 
     args = parser.parse_args()
 
