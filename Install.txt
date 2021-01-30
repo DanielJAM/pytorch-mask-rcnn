@@ -16,7 +16,7 @@ cd to folder of the file
 sudo sh <file>
 
 default GCC probably gives error when trying to run
-solution: https://askubuntu.com/questions/26498/how-to-choose-the-default-gcc-and-g-version# - CHANGE IT BACK to original default AFTERWARDS
+solution: https://askubuntu.com/questions/26498/how-to-choose-the-default-gcc-and-g-version/26502#26502 - CHANGE IT BACK to original default AFTERWARDS
 results in these steps:
 sudo apt-get install gcc-6 g++-6
 
@@ -27,6 +27,9 @@ sudo rm /usr/bin/g++
 sudo ln -s /usr/bin/gcc-6 /usr/bin/gcc
 sudo ln -s /usr/bin/g++-6 /usr/bin/g++
 
+- `sudo nano ~/.bashrc`
+- at the bottom of file, add lines: `export PATH=/usr/local/cuda-9.0/bin${PATH:+:${PATH}}
+export LD_LIBRARY_PATH=/usr/local/cuda-9.0/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}`
 
 optional: cuDNN (after login/account creation): https://developer.nvidia.com/rdp/cudnn-archive
 
@@ -34,7 +37,7 @@ Create conda environment:
 conda env create --file env.yml
 (or one of the other options - env_expanded.yml, explicit_req_conda.txt, env_cuda91.yml - command to install is in comment at top of file)
 
-nvcc shit
+nvcc shit met sm_70, niet sm_75
 
 AFTER INSTALL change back:
 sudo rm /usr/bin/gcc
@@ -53,3 +56,4 @@ drivers and cuda:
 Uninstall via: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#removing-cuda-tk-and-driver OF https://docs.nvidia.com/cuda/cuda-installation-guide-linux/#handle-uninstallation - hier staan ook prerequisite acties als nodig. Ook post-installation instructions hier(lijken onnodig).
 /usr/local/cuda-X.Y/bin/cuda-uninstaller
 /usr/local/cuda-X.Y/bin/uninstall_cuda_X.Y.pl
+
