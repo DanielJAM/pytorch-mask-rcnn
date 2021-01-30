@@ -1,0 +1,13 @@
+name: cuda91
+channels:
+  - defaults
+  - pytorch
+dependencies:
+  - python=3.6
+  - pytorch==0.4.0=py36_cuda9.1.85_cudnn7.1.2_1
+  - cuda91
+  - scikit-image=0.17
+  - pip
+  - pip:
+    - pycocotools==2.0.2
+prefix: /home/ai-pc/anaconda3/envs/cuda91
