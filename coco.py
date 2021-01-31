@@ -447,7 +447,7 @@ if __name__ == '__main__':
 
         end_time = time.process_time()
         with open(config.file, "a") as f:
-            f.write("\nTotal time elapsed: {}\n".format(round(end_time - start_time, 2)))
+            f.write("\nTotal time elapsed: {} hours\n".format(round(end_time - start_time / 3600, 2)))
 
     elif args.command == "evaluate":
         model.load_weights(model_path)
