@@ -42,6 +42,9 @@ class Config(object):
     # number that your GPU can handle for best performance.
     IMAGES_PER_GPU = 1
 
+    # Specify the number of cores to use for the DataLoaders.
+    NUMBER_OF_WORKERS = 2  # 16, 20
+
     # Number of training steps per epoch
     # This doesn't need to match the size of the training set. Tensorboard
     # updates are saved at the end of each epoch, so setting this to a

@@ -1628,12 +1628,13 @@ class MaskRCNN(nn.Module):
             layers = layer_regex[layers]
 
         # Data generators
-        # TODO: try with more workers
         train_set = Dataset(train_dataset, self.config, augment=True)
-        train_generator = torch.utils.data.DataLoader(train_set, batch_size=1, shuffle=True, num_workers=4,
+        train_generator = torch.utils.data.DataLoader(train_set, batch_size=1, shuffle=True,
+                                                      num_workers=self.config.NUMBER_OF_WORKERS,
                                                       worker_init_fn=random.seed(seed))
         val_set = Dataset(val_dataset, self.config, augment=True)
-        val_generator = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=True, num_workers=4,  # have 20 cores
+        val_generator = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=True,
+                                                    num_workers=self.config.NUMBER_OF_WORKERS,
                                                     worker_init_fn=random.seed(seed))
 
         # Train
