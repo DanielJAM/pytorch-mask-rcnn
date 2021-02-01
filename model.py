@@ -9,7 +9,6 @@ Edited by Daniel Maaskant
 """
 
 import datetime
-import time
 import math
 import os
 import random
@@ -27,6 +26,8 @@ import utils
 import visualize
 from nms.nms_wrapper import nms
 from roialign.roi_align.crop_and_resize import CropAndResizeFunction
+
+global device
 
 
 ############################################################
@@ -77,8 +78,7 @@ def unique1d(tensor):
     tensor = tensor.sort()[0]
     unique_bool = tensor[1:] != tensor[:-1]
     first_element = Variable(torch.ByteTensor([True]), requires_grad=False)
-    if tensor.is_cuda:
-        first_element = first_element.cuda()
+    first_element = first_element.to(device)
     unique_bool = torch.cat((first_element, unique_bool), dim=0)
     return tensor[unique_bool.data]
 
@@ -92,8 +92,7 @@ def intersect1d(tensor1, tensor2):
 def log2(x):
     """Implementation of Log2. Pytorch doesn't have a native implementation."""
     ln2 = Variable(torch.log(torch.FloatTensor([2.0])), requires_grad=False)
-    if x.is_cuda:
-        ln2 = ln2.cuda()
+    ln2 = ln2.to(device)
     return torch.log(x) / ln2
 
 
@@ -288,8 +287,7 @@ class ResNet(nn.Module):
                 nn.BatchNorm2d(planes * block.expansion, eps=0.001, momentum=0.01),
             )
 
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample))
+        layers = [block(self.inplanes, planes, stride, downsample)]
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
             layers.append(block(self.inplanes, planes))
@@ -363,8 +361,7 @@ def proposal_layer(inputs, proposal_count, nms_threshold, anchors, config=None):
     # Box deltas [batch, num_rois, 4]
     deltas = inputs[1]
     std_dev = Variable(torch.from_numpy(np.reshape(config.RPN_BBOX_STD_DEV, [1, 4])).float(), requires_grad=False)
-    if config.GPU_COUNT:
-        std_dev = std_dev.cuda()
+    std_dev = std_dev.to(device)
     deltas = deltas * std_dev
 
     # Improve performance by trimming to top anchors by score
@@ -396,8 +393,7 @@ def proposal_layer(inputs, proposal_count, nms_threshold, anchors, config=None):
 
     # Normalize dimensions to range of 0 to 1.
     norm = Variable(torch.from_numpy(np.array([height, width, height, width])).float(), requires_grad=False)
-    if config.GPU_COUNT:
-        norm = norm.cuda()
+    norm = norm.to(device)
     normalized_boxes = boxes / norm
 
     # Add back batch dimension
@@ -449,8 +445,7 @@ def pyramid_roi_align(inputs, pool_size, image_shape):
     # the fact that our coordinates are normalized here.
     # e.g. a 224x224 ROI (in pixels) maps to P4
     image_area = Variable(torch.FloatTensor([float(image_shape[0] * image_shape[1])]), requires_grad=False)
-    if boxes.is_cuda:
-        image_area = image_area.cuda()
+    image_area = image_area.to(device)
     roi_level = 4 + log2(torch.sqrt(h * w) / (224.0 / torch.sqrt(image_area)))
     roi_level = roi_level.round().int()
     roi_level = roi_level.clamp(2, 5)
@@ -481,8 +476,7 @@ def pyramid_roi_align(inputs, pool_size, image_shape):
         # which is how it's done in tf.crop_and_resize()
         # Result: [batch * num_boxes, pool_height, pool_width, channels]
         ind = Variable(torch.zeros(level_boxes.size()[0]), requires_grad=False).int()
-        if level_boxes.is_cuda:
-            ind = ind.cuda()
+        ind = ind.to(device)
         feature_maps[i] = feature_maps[i].unsqueeze(0)  # CropAndResizeFunction needs batch dimension
         pooled_features = CropAndResizeFunction(pool_size, pool_size, 0)(feature_maps[i], level_boxes, ind)
         pooled.append(pooled_features)
@@ -525,8 +519,7 @@ def bbox_overlaps(boxes1, boxes2):
     y2 = torch.min(b1_y2, b2_y2)[:, 0]
     x2 = torch.min(b1_x2, b2_x2)[:, 0]
     zeros = Variable(torch.zeros(y1.size()[0]), requires_grad=False)
-    if y1.is_cuda:
-        zeros = zeros.cuda()
+    zeros = zeros.to(device)
     intersection = torch.max(x2 - x1, zeros) * torch.max(y2 - y1, zeros)
 
     # 3. Compute unions
@@ -570,8 +563,7 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):
     # them from training. A crowd box is given a negative class ID.
     # Removed functionality, don't use crowd boxes.
     no_crowd_bool = Variable(torch.ByteTensor(proposals.size()[0] * [True]), requires_grad=False)
-    if config.GPU_COUNT:
-        no_crowd_bool = no_crowd_bool.cuda()
+    no_crowd_bool = no_crowd_bool.to(device)
 
     # Compute overlaps matrix [proposals, gt_boxes]
     overlaps = bbox_overlaps(proposals, gt_boxes)
@@ -591,8 +583,7 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):
                              config.ROI_POSITIVE_RATIO)
         rand_idx = torch.randperm(positive_indices.size()[0])
         rand_idx = rand_idx[:positive_count]
-        if config.GPU_COUNT:
-            rand_idx = rand_idx.cuda()
+        rand_idx = rand_idx.to(device)
         positive_indices = positive_indices[rand_idx]
         positive_count = positive_indices.size()[0]
         positive_rois = proposals[positive_indices.data, :]
@@ -606,8 +597,7 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):
         # Compute bbox refinement for positive ROIs
         deltas = Variable(utils.box_refinement(positive_rois.data, roi_gt_boxes.data), requires_grad=False)
         std_dev = Variable(torch.from_numpy(config.BBOX_STD_DEV).float(), requires_grad=False)
-        if config.GPU_COUNT:
-            std_dev = std_dev.cuda()
+        std_dev = std_dev.to(device)
         deltas /= std_dev
 
     else:
@@ -623,8 +613,7 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):
         negative_count = int(r * positive_count - positive_count)
         rand_idx = torch.randperm(negative_indices.size()[0])
         rand_idx = rand_idx[:negative_count]
-        if config.GPU_COUNT:
-            rand_idx = rand_idx.cuda()
+        rand_idx = rand_idx.to(device)
         negative_indices = negative_indices[rand_idx]
         negative_count = negative_indices.size()[0]
         negative_rois = proposals[negative_indices.data, :]
@@ -636,33 +625,28 @@ def detection_target_layer(proposals, gt_class_ids, gt_boxes, config):
     if positive_count > 0 and negative_count > 0:
         rois = torch.cat((positive_rois, negative_rois), dim=0)
         zeros = Variable(torch.zeros(negative_count), requires_grad=False).int()
-        if config.GPU_COUNT:
-            zeros = zeros.cuda()
+        zeros = zeros.to(device)
         roi_gt_class_ids = torch.cat([roi_gt_class_ids, zeros], dim=0)
         zeros = Variable(torch.zeros(negative_count, 4), requires_grad=False)
-        if config.GPU_COUNT:
-            zeros = zeros.cuda()
+        zeros = zeros.to(device)
         deltas = torch.cat([deltas, zeros], dim=0)
     elif positive_count > 0:
         rois = positive_rois
     elif negative_count > 0:
         rois = negative_rois
         zeros = Variable(torch.zeros(negative_count), requires_grad=False)
-        if config.GPU_COUNT:
-            zeros = zeros.cuda()
+        zeros = zeros.to(device)
         roi_gt_class_ids = zeros
         zeros = Variable(torch.zeros(negative_count, 4), requires_grad=False).int()
-        if config.GPU_COUNT:
-            zeros = zeros.cuda()
+        zeros = zeros.to(device)
         deltas = zeros
     else:
         rois = Variable(torch.FloatTensor(), requires_grad=False)
         roi_gt_class_ids = Variable(torch.IntTensor(), requires_grad=False)
         deltas = Variable(torch.FloatTensor(), requires_grad=False)
-        if config.GPU_COUNT:
-            rois = rois.cuda()
-            roi_gt_class_ids = roi_gt_class_ids.cuda()
-            deltas = deltas.cuda()
+        rois = rois.to(device)
+        roi_gt_class_ids = roi_gt_class_ids.to(device)
+        deltas = deltas.to(device)
 
     return rois, roi_gt_class_ids, deltas
 
@@ -705,23 +689,20 @@ def refine_detections(rois, probs, deltas, window, config):
     # Class probability of the top class of each ROI
     # Class-specific bounding box deltas
     idx = torch.arange(class_ids.size()[0]).long()
-    if config.GPU_COUNT:
-        idx = idx.cuda()
+    idx = idx.to(device)
     class_scores = probs[idx, class_ids.data]
     deltas_specific = deltas[idx, class_ids.data]
 
     # Apply bounding box deltas
     # Shape: [boxes, (y1, x1, y2, x2)] in normalized coordinates
     std_dev = Variable(torch.from_numpy(np.reshape(config.RPN_BBOX_STD_DEV, [1, 4])).float(), requires_grad=False)
-    if config.GPU_COUNT:
-        std_dev = std_dev.cuda()
+    std_dev = std_dev.to(device)
     refined_rois = apply_box_deltas(rois, deltas_specific * std_dev)
 
     # Convert coordinates to image domain
     height, width = config.IMAGE_SHAPE[:2]
     scale = Variable(torch.from_numpy(np.array([height, width, height, width])).float(), requires_grad=False)
-    if config.GPU_COUNT:
-        scale = scale.cuda()
+    scale = scale.to(device)
     refined_rois *= scale
 
     # Clip boxes to image window
@@ -1014,8 +995,7 @@ def compute_mrcnn_class_loss(target_class_ids, pred_class_logits):
         loss = F.cross_entropy(pred_class_logits, target_class_ids.long())
     else:
         loss = Variable(torch.FloatTensor([0]), requires_grad=False)
-        if target_class_ids.is_cuda:
-            loss = loss.cuda()
+        loss = loss.to(device)
 
     return loss
 
@@ -1043,8 +1023,7 @@ def compute_mrcnn_bbox_loss(target_bbox, target_class_ids, pred_bbox):
         loss = F.smooth_l1_loss(pred_bbox, target_bbox)
     else:
         loss = Variable(torch.FloatTensor([0]), requires_grad=False)
-        if target_class_ids.is_cuda:
-            loss = loss.cuda()
+        loss = loss.to(device)
 
     return loss
 
@@ -1335,8 +1314,7 @@ class MaskRCNN(nn.Module):
                                                                                 config.BACKBONE_STRIDES,
                                                                                 config.RPN_ANCHOR_STRIDE)).float(),
                                 requires_grad=False)
-        if self.config.GPU_COUNT:
-            self.anchors = self.anchors.cuda()
+        self.anchors = self.anchors.to(device)
 
         # RPN
         self.rpn = RPN(len(config.RPN_ANCHOR_RATIOS), config.RPN_ANCHOR_STRIDE, 256)
@@ -1476,8 +1454,7 @@ class MaskRCNN(nn.Module):
         molded_images = torch.from_numpy(molded_images.transpose(0, 3, 1, 2)).float()
 
         # To GPU
-        if self.config.GPU_COUNT:
-            molded_images = molded_images.cuda()
+        molded_images = molded_images.to(device)
 
         # Speedup computation by not building gradient graph
         with torch.no_grad():
@@ -1569,8 +1546,7 @@ class MaskRCNN(nn.Module):
             # Normalize coordinates
             h, w = self.config.IMAGE_SHAPE[:2]
             scale = Variable(torch.from_numpy(np.array([h, w, h, w])).float(), requires_grad=False)
-            if self.config.GPU_COUNT:
-                scale = scale.cuda()
+            scale = scale.to(device)
             gt_boxes = gt_boxes / scale
 
             # Generate detection targets
@@ -1583,9 +1559,8 @@ class MaskRCNN(nn.Module):
             if not rois.nelement():
                 mrcnn_class_logits = Variable(torch.FloatTensor())
                 mrcnn_bbox = Variable(torch.FloatTensor())
-                if self.config.GPU_COUNT:
-                    mrcnn_class_logits = mrcnn_class_logits.cuda()
-                    mrcnn_bbox = mrcnn_bbox.cuda()
+                mrcnn_class_logits = mrcnn_class_logits.to(device)
+                mrcnn_bbox = mrcnn_bbox.to(device)
             else:
                 # Network Heads
                 # Proposal classifier and BBox regressor heads
@@ -1664,14 +1639,14 @@ class MaskRCNN(nn.Module):
                 self.train_epoch(train_generator, optimizer, self.config.STEPS_PER_EPOCH)
 
             # end_train = round(time.process_time(), 2)
-            # print("Training took:", end_train - start_train, "seconds\ttotal elapsed:", end_train)
+            # print("Training took:", end_train - start_train, "seconds\t total elapsed:", end_train)
 
             # Validation
             val_loss, val_loss_rpn_class, val_loss_rpn_bbox, val_loss_mrcnn_class, val_loss_mrcnn_bbox = \
                 self.valid_epoch(val_generator, self.config.VALIDATION_STEPS)
 
             # end_validation = round(time.process_time(), 2)
-            # print("Validation took:", end_validation - end_train, "seconds\ttotal elapsed:", end_validation)
+            # print("Validation took:", end_validation - end_train, "seconds\t total elapsed:", end_validation)
 
             # Statistics
             self.loss_history.append(
@@ -1681,13 +1656,13 @@ class MaskRCNN(nn.Module):
             visualize.plot_loss(self.loss_history, self.val_loss_history, save=True, log_dir=self.log_dir)
 
             # statistics = round(time.process_time(), 2)
-            # print("Statistics took:", statistics - end_validation, "seconds\ttotal elapsed:", statistics)
+            # print("Statistics took:", statistics - end_validation, "seconds\t total elapsed:", statistics)
 
             # Save model
             torch.save(self.state_dict(), self.checkpoint_path.format(epoch))
 
             # saving = round(time.process_time(), 2)
-            # print("Saving took:", saving - end_validation, "seconds\ttotal elapsed:", saving)
+            # print("Saving took:", saving - end_validation, "seconds\t total elapsed:", saving)
 
         # Only update if not continuing from an already higher epoch, otherwise return to correct part for this epoch
         if self.epoch < epochs:
@@ -1725,12 +1700,11 @@ class MaskRCNN(nn.Module):
             gt_boxes = Variable(gt_boxes)
 
             # To GPU
-            if self.config.GPU_COUNT:
-                images = images.cuda()
-                rpn_match = rpn_match.cuda()
-                rpn_bbox = rpn_bbox.cuda()
-                gt_class_ids = gt_class_ids.cuda()
-                gt_boxes = gt_boxes.cuda()
+            images = images.to(device)
+            rpn_match = rpn_match.to(device)
+            rpn_bbox = rpn_bbox.to(device)
+            gt_class_ids = gt_class_ids.to(device)
+            gt_boxes = gt_boxes.to(device)
 
             # Run object detection
             rpn_class_logits, rpn_pred_bbox, target_class_ids, mrcnn_class_logits, target_deltas, mrcnn_bbox = \
@@ -1797,12 +1771,11 @@ class MaskRCNN(nn.Module):
             # Speedup computation by not building gradient graph
             with torch.no_grad():
                 # To GPU
-                if self.config.GPU_COUNT:
-                    images = images.cuda()
-                    rpn_match = rpn_match.cuda()
-                    rpn_bbox = rpn_bbox.cuda()
-                    gt_class_ids = gt_class_ids.cuda()
-                    gt_boxes = gt_boxes.cuda()
+                images = images.to(device)
+                rpn_match = rpn_match.to(device)
+                rpn_bbox = rpn_bbox.to(device)
+                gt_class_ids = gt_class_ids.to(device)
+                gt_boxes = gt_boxes.to(device)
 
                 # Run object detection
                 rpn_class_logits, rpn_pred_bbox, target_class_ids, mrcnn_class_logits, target_deltas, mrcnn_bbox = \

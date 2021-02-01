@@ -338,10 +338,12 @@ if __name__ == '__main__':
         print("Random seed PyTorch, NumPy, and random set to {}".format(args.random))
 
     # Create model
+    modellib.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = modellib.MaskRCNN(config=config, models_dir=args.logs)
 
-    if config.GPU_COUNT:
-        model = model.cuda()
+    if config.GPU_COUNT > 1:
+        model = torch.nn.DataParallel(model)
+    model.to(modellib.device)
 
     # Select weights file to load
     if isinstance(args.model, str):
