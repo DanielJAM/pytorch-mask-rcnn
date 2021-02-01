@@ -1725,7 +1725,7 @@ class MaskRCNN(nn.Module):
                 batch_count = 0
 
             # Progress
-            if step == steps or step % 5 == 0:
+            if step == steps - 1 or step % 5 == 0:
                 print_progress_bar(step + 1, steps, prefix="\t{}/{}".format(step + 1, steps),
                                    suffix="Complete - loss: {:.5f} - rpn_class_loss: {:.5f} - rpn_bbox_loss: {:.5f} - "
                                           "mrcnn_class_loss: {:.5f} - mrcnn_bbox_loss: {:.5f}".format(
@@ -1791,14 +1791,12 @@ class MaskRCNN(nn.Module):
                 loss = rpn_class_loss + rpn_bbox_loss + mrcnn_class_loss + mrcnn_bbox_loss
 
             # Progress
-            if step == steps or step % 5 == 0:
-                print_progress_bar(step + 1, steps, prefix="\t{}/{}".format(step + 1, steps),
-                                   suffix="Complete - loss: {:.5f} - rpn_class_loss: {:.5f} - rpn_bbox_loss: {:.5f} - "
-                                          "mrcnn_class_loss: {:.5f} - mrcnn_bbox_loss: {:.5f}".format(
-                                       loss.data.cpu().item(), rpn_class_loss.data.cpu().item(),
-                                       rpn_bbox_loss.data.cpu().item(),
-                                       mrcnn_class_loss.data.cpu().item(), mrcnn_bbox_loss.data.cpu().item()),
-                                   length=10)
+            print_progress_bar(step + 1, steps, prefix="\t{}/{}".format(step + 1, steps),
+                               suffix="Complete - loss: {:.5f} - rpn_class_loss: {:.5f} - rpn_bbox_loss: {:.5f} - "
+                                      "mrcnn_class_loss: {:.5f} - mrcnn_bbox_loss: {:.5f}".format(
+                                   loss.data.cpu().item(), rpn_class_loss.data.cpu().item(),
+                                   rpn_bbox_loss.data.cpu().item(),
+                                   mrcnn_class_loss.data.cpu().item(), mrcnn_bbox_loss.data.cpu().item()), length=10)
 
             # Statistics
             loss_sum += loss.data.cpu().item() / steps
