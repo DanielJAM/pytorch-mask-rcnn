@@ -43,7 +43,7 @@ class Config(object):
     IMAGES_PER_GPU = 1
 
     # Specify the number of cores to use for the DataLoaders.
-    NUMBER_OF_WORKERS = 2  # 16, 20
+    NUMBER_OF_WORKERS = 4  # 16, 20
 
     # Number of training steps per epoch
     # This doesn't need to match the size of the training set. Tensorboard
@@ -52,7 +52,7 @@ class Config(object):
     # Validation stats are also calculated at each epoch end and they
     # might take a while, so don't set this too small to avoid spending
     # a lot of time on validation stats.
-    STEPS_PER_EPOCH = 1000  # possibly set to 1/10th of current train set: 797
+    STEPS_PER_EPOCH = 322  # possibly set to 1/10th of current train set: 797
 
     # Number of validation steps to run at the end of every training epoch.
     # A bigger number improves accuracy of validation stats, but slows
