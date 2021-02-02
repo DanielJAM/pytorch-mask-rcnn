@@ -43,7 +43,7 @@ class Config(object):
     IMAGES_PER_GPU = 1
 
     # Specify the number of subprocesses to use for each DataLoader.
-    NUMBER_OF_WORKERS = 1  # 16, 20
+    NUMBER_OF_WORKERS = 4  # 16, 20
 
     # Number of training steps per epoch
     # This doesn't need to match the size of the training set. Tensorboard
