@@ -73,29 +73,6 @@ DEFAULT_DATASET_YEAR = "2014"
 
 
 ############################################################
-#  Configurations
-############################################################
-
-class CocoConfig(Config):
-    """Configuration for training on MS COCO.
-    Derives from the base Config class and overrides values specific
-    to the COCO dataset.
-    """
-    # Give the configuration a recognizable name
-    NAME = "PanorAMS"
-
-    # We use one GPU with 8GB memory, which can fit one image.
-    # Adjust down if you use a smaller GPU.
-    IMAGES_PER_GPU = 1
-
-    # Uncomment to train on 8 GPUs (default is 1)
-    GPU_COUNT = 1
-
-    # Number of classes (including background)
-    NUM_CLASSES = 1 + 1  # COCO has 80 classes
-
-
-############################################################
 #  Dataset
 ############################################################
 
@@ -302,7 +279,7 @@ if __name__ == '__main__':
 
     # Configurations
     if args.command == "train":
-        config = CocoConfig()
+        config = Config()
 
         # Add starting model name to log folder
         if isinstance(args.model, str):
@@ -315,7 +292,7 @@ if __name__ == '__main__':
         config.NAME = config.NAME + "_" + start_model_name + "-"
 
     else:
-        class InferenceConfig(CocoConfig):
+        class InferenceConfig(Config):
             # Set batch size to 1 since we'll be running inference on
             # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
             GPU_COUNT = 1
@@ -341,8 +318,8 @@ if __name__ == '__main__':
     modellib.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = modellib.MaskRCNN(config=config, models_dir=args.logs)
 
-    if config.GPU_COUNT > 1:
-        model = torch.nn.DataParallel(model)
+    # if config.GPU_COUNT > 1:
+    #     model = torch.nn.DataParallel(model)  For being able to use multiple GPUs, but this requires rewriting a lot
     model.to(modellib.device)
 
     # Select weights file to load
@@ -451,7 +428,7 @@ if __name__ == '__main__':
 
         end_time = time.process_time()
         with open(config.file, "a") as f:
-            f.write("\nTotal time elapsed: {} hours\n".format(round(end_time - start_time / 3600, 2)))
+            f.write("\nTotal time elapsed: {} hours\n".format(round((end_time - start_time) / 3600, 2)))
 
     elif args.command == "evaluate":
         model.load_weights(model_path)

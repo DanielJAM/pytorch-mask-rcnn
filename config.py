@@ -28,7 +28,7 @@ class Config(object):
     # Name the configurations. For example, 'COCO', 'Experiment 3', ...etc.
     # Useful if your code needs to do things differently depending on which
     # experiment is running.
-    NAME = "Faster_RCNN-"  # "5+_e50_mincf-0.7-"  # Override in sub-classes
+    NAME = "PanorAMS"  # "5+_e50_mincf-0.7-"  # Override in sub-classes
 
     # Path to pretrained imagenet model
     IMAGENET_MODEL_PATH = os.path.join(os.getcwd(), "models/resnet50_imagenet.pth")
@@ -42,8 +42,8 @@ class Config(object):
     # number that your GPU can handle for best performance.
     IMAGES_PER_GPU = 1
 
-    # Specify the number of cores to use for the DataLoaders.
-    NUMBER_OF_WORKERS = 4  # 16, 20
+    # Specify the number of subprocesses to use for each DataLoader.
+    NUMBER_OF_WORKERS = 1  # 16, 20
 
     # Number of training steps per epoch
     # This doesn't need to match the size of the training set. Tensorboard
