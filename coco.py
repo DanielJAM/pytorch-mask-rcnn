@@ -38,12 +38,13 @@ Usage: import the module, or run from the command line as such:
     --random=1
 """
 
+import datetime
 import os
+import numpy as np
+import matplotlib.pyplot as plt
+import random
 import sys
 import time
-import numpy as np
-import datetime
-import random
 import torch
 
 # Download and install the Python COCO tools from https://github.com/waleedka/coco
@@ -59,6 +60,7 @@ from pycocotools import mask as maskUtils
 from config import Config
 import utils
 import model as modellib
+import visualize
 
 # Root directory of the project
 ROOT_DIR = os.getcwd()
@@ -182,7 +184,7 @@ def build_coco_results(dataset, image_ids, rois, class_ids, scores):
     return results
 
 
-def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=None):
+def evaluate_coco(model, dataset, coco, display, eval_type="bbox", limit=0, image_ids=None):
     """Runs official COCO evaluation.
     dataset: A Dataset object with validation data
     eval_type: "bbox" or "segm" for bounding box or segmentation evaluation
@@ -213,6 +215,11 @@ def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=Non
         r = model.detect([image])[0]
         t_prediction += (time.time() - t)
 
+        # Visualize result
+        if display is "True":
+            visualize.display_instances(image, r['rois'], r['class_ids'], dataset.class_names, r['scores'],
+                                        title="Predictions", figsize=image.shape[:2])
+
         # Convert results to COCO format
         image_results = build_coco_results(dataset, coco_image_ids[i:i + 1],
                                            r["rois"], r["class_ids"],
@@ -225,6 +232,7 @@ def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=Non
     # Evaluate
     cocoEval = COCOeval(coco, coco_results, eval_type)
     cocoEval.params.imgIds = coco_image_ids
+    cocoEval.params.iouThrs = np.linspace(.25, 0.5, int(np.round((0.5 - .25) / .05)) + 1, endpoint=True)
     cocoEval.evaluate()
     cocoEval.accumulate()
     cocoEval.summarize()
@@ -244,13 +252,13 @@ if __name__ == '__main__':
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(
-        description='Train Mask R-CNN on a MS-COCO formatted dataset.')
+        description='Train Mask R-CNN on a MS-COCO format dataset.')
     parser.add_argument("command",
                         metavar="<command>",
                         help="'train' or 'evaluate'")
     parser.add_argument('--dataset', required=True,
                         metavar="/path/to/coco/",
-                        help='Directory of the MS-COCO formatted dataset')
+                        help='Directory of the MS-COCO format dataset')
     parser.add_argument('--model', required=False,
                         metavar="/path/to/weights.pth",
                         help="Path to weights .pth file, 'none', 'last', or 'imagenet'")
@@ -274,6 +282,10 @@ if __name__ == '__main__':
                         default='example',
                         metavar='"example", "all", "3+", "4+", "heads"',
                         help='specify training schedule (default=example)')
+    parser.add_argument('--display', required=False,
+                        default=False,
+                        metavar='boolean',
+                        help='Whether to display detection results per image.')
 
     args = parser.parse_args()
 
@@ -290,7 +302,6 @@ if __name__ == '__main__':
         else:
             start_model_name = ""
         config.NAME = config.NAME + "_" + start_model_name + "-"
-
     else:
         class InferenceConfig(Config):
             # Set batch size to 1 since we'll be running inference on
@@ -304,7 +315,7 @@ if __name__ == '__main__':
     config.RUN_CONFIG = args.__dict__
 
     # Set random seed
-    if args.random is not None:
+    if type(args.random) is int:
         seed = int(args.random)
         random.seed(seed)
         torch.backends.cudnn.deterministic = True
@@ -420,7 +431,7 @@ if __name__ == '__main__':
                               learning_rate=config.LEARNING_RATE,
                               epochs=120,
                               layers='3+', seed=args.random)
-            print("Fine tune Resnet stage 3 and up - lr / 10")
+            print("Fine tune Resnet stage 3 and up, lr / 10")
             model.train_model(dataset_train, dataset_val,
                               learning_rate=config.LEARNING_RATE / 10,
                               epochs=160,
@@ -428,7 +439,7 @@ if __name__ == '__main__':
 
         end_time = time.process_time()
         with open(config.file, "a") as f:
-            f.write("\nTotal time elapsed: {} hours\n".format(round((end_time - start_time) / 3600, 2)))
+            f.write("\nTotal time elapsed: {} hours\n".format(round((end_time - start_time) / 3600.0, 2)))
 
     elif args.command == "evaluate":
         model.load_weights(model_path)
@@ -456,7 +467,7 @@ if __name__ == '__main__':
             dataset_val = CocoDataset()
             coco = dataset_val.load_coco(args.dataset, args.val_test, return_coco=True)
             dataset_val.prepare()
-            evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))
+            evaluate_coco(model, dataset_val, coco, args.display, "bbox", limit=int(args.limit))
 
     else:
         print("'{}' is not recognized. "

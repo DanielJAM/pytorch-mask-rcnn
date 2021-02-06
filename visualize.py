@@ -79,18 +79,19 @@ def display_instances(image, boxes, class_ids, class_names,
     else:
         assert boxes.shape[0] == class_ids.shape[0]
 
-    if not ax:
-        _, ax = plt.subplots(1, figsize=figsize)
+    height, width = image.shape[:2]
+    _, ax = plt.subplots(1, figsize=(width/100, height/100))
 
     # Generate random colors
     colors = random_colors(N)
 
     # Show area outside image boundaries.
-    height, width = image.shape[:2]
-    ax.set_ylim(height + 10, -10)
-    ax.set_xlim(-10, width + 10)
+    # ax.set_ylim(height + 10, -10)
+    # ax.set_xlim(-10, width + 10)
     ax.axis('off')
     ax.set_title(title)
+
+    plt.imshow(image)
 
     for i in range(N):
         color = colors[i]
