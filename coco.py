@@ -232,7 +232,7 @@ def evaluate_coco(model, dataset, coco, display, eval_type="bbox", limit=0, imag
     # Evaluate
     cocoEval = COCOeval(coco, coco_results, eval_type)
     cocoEval.params.imgIds = coco_image_ids
-    cocoEval.params.iouThrs = np.linspace(.25, 0.5, int(np.round((0.5 - .25) / .05)) + 1, endpoint=True) 
+    cocoEval.params.iouThrs = np.linspace(.25, 0.5, int(np.round((0.5 - .25) / .05)) + 1, endpoint=True)
     cocoEval.evaluate()
     cocoEval.accumulate()
     cocoEval.summarize()
