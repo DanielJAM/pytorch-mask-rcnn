@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-from tqdm import tqdm
+# from tqdm import tqdm
 from utils import Dataset
 from xml.etree import ElementTree
 
@@ -13,7 +13,7 @@ class LampPostDataset(Dataset):
 
         images = os.listdir(img_dir)
         annots = os.listdir(annos_dir)
-        for i, filename in tqdm(enumerate(images)):
+        for i, filename in enumerate(images):
             image_id = filename[:-4]
 
             if image_id + ".xml" in annots:

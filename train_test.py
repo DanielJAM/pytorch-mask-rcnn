@@ -21,7 +21,7 @@ def run(img_dir, annos_dir, ONLY_TEST=1, STEPS_IS_LEN_TRAIN_SET=0, n_epochs=5, l
         img_dir: path to directory containing images
         annos_dir: path to directory containing annotations """
 
-    torch.backends.cudnn.benchmark = True
+    # torch.backends.cudnn.benchmark = True
 
     start_time = time.process_time()
     print("start time time(s): ", round(start_time, 2))
@@ -80,7 +80,8 @@ def run(img_dir, annos_dir, ONLY_TEST=1, STEPS_IS_LEN_TRAIN_SET=0, n_epochs=5, l
               round(train_time, 2))
 
     # TEST MODEL
-    model = modellib.MaskRCNN(config=config, model_dir='./models')
+    modellib.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model = modellib.MaskRCNN(config=config, models_dir='./models')
 
     # loading the trained weights of the custom dataset
     # last_model = model.find_last()[1]
