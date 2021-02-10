@@ -1,0 +1,15 @@
+# Install with "conda env create --file <this file>"
+name: pytorch-mask-rcnn
+channels:
+  - defaults
+  - pytorch
+dependencies:
+  - python=3.6
+  - scikit-image=0.17
+  - pytorch==0.4.0=py36_cuda90_cudnn7he774522_1
+  - pip
+  - cuda90
+  - cudatoolkit=9.0
+  - pip:
+    - pycocotools==2.0.2
+prefix: /home/ai-pc/anaconda3/envs/pytorch-mask-rcnn

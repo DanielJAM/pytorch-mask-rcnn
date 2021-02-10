@@ -39,6 +39,7 @@ Usage: import the module, or run from the command line as such:
 """
 
 import datetime
+from distutils.util import strtobool
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -447,13 +448,42 @@ if __name__ == '__main__':
 
     elif args.command == "evaluate":
         # TODO: get config settings from config file
+        # Read config file and convert back to original variable format
         # Anchor ratios, stride, scales etc. have to be the same for evaluation as for training.
         config_file = os.path.join(model.model_dir, "config.txt")
         with open(config_file) as f:
             config_list = f.readlines()
+        config_list = config_list[5:]  # Remove backbone shapes
         for line in config_list:
             line_split = line.split(None, 1)
-            exec("config." + line_split[0] + " = " + line_split[1])
+            var_name = line_split[0].strip()
+            var_value = line_split[1].strip()
+            if ',' in var_value:  # if it's a list
+                var_value = var_value[1:-1]
+                if '.' in var_value:
+                    var_value = [float(x.replace(',', '')) for x in var_value.split()]
+                else:
+                    var_value = [int(x.replace(',', '')) for x in var_value.split()]
+            else:
+                temp = var_value.split()
+                start_char = ord(var_value[0])
+                if len(temp) > 1:  # list with ' ' separator
+                    var_value = var_value[1:-1]  # get rid of brackets
+                    if '.' in var_value:
+                        var_value = np.fromstring(var_value, dtype=float, sep=' ')
+                    else:
+                        var_value = np.fromstring(var_value, dtype=int, sep=' ')
+                elif start_char > ord('9') or start_char < ord('0'):  # text values
+                    if var_value[0] == "T" or var_value == "F":
+                        var_value = bool(strtobool(var_value))
+                else:  # single digit
+                    if '.' in var_value:
+                        var_value = float(var_value)
+                    else:
+                        var_value = int(var_value)
+            exec("config." + var_name + " = var_value")
+
+        config.__init__()
 
         model.load_weights(model_path)
 
