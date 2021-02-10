@@ -30,9 +30,6 @@ class Config(object):
     # experiment is running.
     NAME = "PanorAMS"  # "5+_e50_mincf-0.7-"  # Override in sub-classes
 
-    # Path to pretrained imagenet model
-    IMAGENET_MODEL_PATH = os.path.join(os.getcwd(), "models/resnet50_imagenet.pth")
-
     # NUMBER OF GPUs to use. For CPU use 0
     GPU_COUNT = 1
 
@@ -43,7 +40,7 @@ class Config(object):
     IMAGES_PER_GPU = 1
 
     # Specify the number of subprocesses to use for each DataLoader.
-    NUMBER_OF_WORKERS = 4  # 16, 20
+    NUMBER_OF_WORKERS = 1  # 16, 20
 
     # Number of training steps per epoch
     # This doesn't need to match the size of the training set. Tensorboard
@@ -67,11 +64,11 @@ class Config(object):
     NUM_CLASSES = 2  # Override in sub-classes
 
     # Length of square anchor side in pixels
-    RPN_ANCHOR_SCALES = (32, 64, 128, 256, 512)
+    RPN_ANCHOR_SCALES = (16, 32, 64, 128, 256)  # (16, 32, 64, 128, 256, 512)
 
     # Ratios of anchors at each cell (width/height)
     # A value of 1 represents a square anchor, and 0.5 is a wide anchor
-    RPN_ANCHOR_RATIOS = [0.5, 1, 2]
+    RPN_ANCHOR_RATIOS = [0.5, 0.25, 0.125]
 
     # Anchor stride
     # If 1 then anchors are created for each cell in the backbone feature map.
@@ -105,7 +102,8 @@ class Config(object):
     IMAGE_PADDING = True  # currently, the False option is not supported
 
     # Image mean (RGB)
-    MEAN_PIXEL = np.array([123.7, 116.8, 103.9])  # old: 123.7, 116.8, 103.9  # new: 129.1, 132.9, 133.7
+    MEAN_PIXEL = np.array([116.9, 119.9, 119.9])  # old: 123.7, 116.8, 103.9  # new: 129.1, 132.9, 133.7
+    # GT set mean: [116.86444829030762, 119.87119041336445, 119.94218347391956]
     # TMX7315080123-000281_pano_0000_000249 has 137.4, 137.8, 135.0
     # TMX7316010203-001192_pano_0002_000595.jpg has 129.1, 132.9, 133.7
 
@@ -145,7 +143,7 @@ class Config(object):
     # The Mask RCNN paper uses lr=0.02, but on TensorFlow it causes
     # weights to explode. Likely due to differences in optimiser
     # implementation.
-    LEARNING_RATE = 0.001  # 0.001 / 0.00001,  0.02 in Mask-RCNN paper - 0.006
+    LEARNING_RATE = 0.02  # 0.001 / 0.00001,  0.02 in Mask-RCNN paper - 0.006
     LEARNING_MOMENTUM = 0.9  # 0.9 Mask-RCNN paper
 
     # Weight decay regularization

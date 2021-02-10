@@ -67,6 +67,7 @@ ROOT_DIR = os.getcwd()
 
 # Path to trained weights file
 COCO_MODEL_PATH = os.path.join(ROOT_DIR, "models/mask_rcnn_coco.pth")
+IMAGENET_MODEL_PATH = os.path.join(ROOT_DIR, "models/resnet50_imagenet.pth")
 
 # Directory to save logs and model checkpoints, if not provided
 # through the command line argument --logs
@@ -216,7 +217,7 @@ def evaluate_coco(model, dataset, coco, display, eval_type="bbox", limit=0, imag
         t_prediction += (time.time() - t)
 
         # Visualize result
-        if display is "True":
+        if display == "True":
             visualize.display_instances(image, r['rois'], r['class_ids'], dataset.class_names, r['scores'],
                                         title="Predictions", figsize=image.shape[:2])
 
@@ -289,6 +290,17 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    # Set random seed
+    if type(args.random) is int:
+        seed = int(args.random)
+        random.seed(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        np.random.seed(seed)
+        print("Random seed PyTorch, NumPy, and random set to {}".format(args.random))
+
     # Configurations
     if args.command == "train":
         config = Config()
@@ -303,30 +315,22 @@ if __name__ == '__main__':
             start_model_name = ""
         config.NAME = config.NAME + "_" + start_model_name + "-"
     else:
-        class InferenceConfig(Config):
+        class TempConfig(Config):
             # Set batch size to 1 since we'll be running inference on
             # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
             GPU_COUNT = 1
             IMAGES_PER_GPU = 1
             DETECTION_MIN_CONFIDENCE = 0
 
-        config = InferenceConfig()
+        config = TempConfig()
     # Save run config commands for reference
     config.RUN_CONFIG = args.__dict__
 
-    # Set random seed
-    if type(args.random) is int:
-        seed = int(args.random)
-        random.seed(seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-        torch.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-        np.random.seed(seed)
-        print("Random seed PyTorch, NumPy, and random set to {}".format(args.random))
-
     # Create model
     modellib.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # modellib.device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    # modellib.device = torch.device("cpu")
+    # For some reason parallel running anything doesn't work with these settings when training layers "3+"
     model = modellib.MaskRCNN(config=config, models_dir=args.logs)
 
     # if config.GPU_COUNT > 1:
@@ -345,11 +349,11 @@ if __name__ == '__main__':
         elif model_command == "coco":
             # Start from COCO trained weights - not working yet
             model_path = COCO_MODEL_PATH
-            model_dir = os.path.join(model_path.split(os.path.basename(model_path))[0], model_command)
+            model.model_dir = os.path.join(model_path.split(os.path.basename(model_path))[0], model_command)
         elif model_command == "imagenet":
             # Start from ImageNet trained weights
-            model_path = config.IMAGENET_MODEL_PATH
-            model_dir = os.path.join(model_path.split(os.path.basename(model_path))[0], model_command)
+            model_path = IMAGENET_MODEL_PATH
+            model.model_dir = os.path.join(model_path.split(os.path.basename(model_path))[0], model_command)
         else:
             model_path = args.model
     else:
@@ -442,10 +446,17 @@ if __name__ == '__main__':
             f.write("\nTotal time elapsed: {} hours\n".format(round((end_time - start_time) / 3600.0, 2)))
 
     elif args.command == "evaluate":
+        # TODO: get config settings from config file
+        # Anchor ratios, stride, scales etc. have to be the same for evaluation as for training.
+        config_file = os.path.join(model.model_dir, "config.txt")
+        with open(config_file) as f:
+            config_list = f.readlines()
+        for line in config_list:
+            line_split = line.split(None, 1)
+            exec("config." + line_split[0] + " = " + line_split[1])
+
         model.load_weights(model_path)
 
-        if 'model_dir' in locals():
-            model.model_dir = model_dir
         # Change output to text file
         with open("{}/evaluate_{}-{:%Y%m%dT%H%M}.txt".format(model.model_dir, args.val_test,
                                                              datetime.datetime.now()), 'w') as file:
