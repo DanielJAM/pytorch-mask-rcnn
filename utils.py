@@ -49,6 +49,7 @@ def extract_bboxes(mask):
         boxes[i] = np.array([y1, x1, y2, x2])
     return boxes.astype(np.int32)
 
+
 def extract_bboxes_coco(image_info):
     """ Extract bounding boxes from a 'COCO'-format annotation file
     """
@@ -60,8 +61,8 @@ def extract_bboxes_coco(image_info):
     for i, box in enumerate(box_annos):
         xmin = box['bbox'][0]
         ymin = box['bbox'][1]
-        xmax = box['bbox'][2]   + xmin
-        ymax = box['bbox'][3]   + ymin
+        xmax = box['bbox'][2] + xmin
+        ymax = box['bbox'][3] + ymin
         coors = np.array([xmin, ymin, xmax, ymax])
         boxes[i] = coors
 
