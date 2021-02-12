@@ -1227,9 +1227,6 @@ class Dataset(torch.utils.data.Dataset):
         image, image_metas, gt_class_ids, gt_boxes = \
             load_image_gt(self.dataset, self.config, image_id, augment=self.augment)
 
-        visualize.display_instances(image, gt_boxes, gt_class_ids, ["BG", "lamp post"],
-                                    title="{} ({})".format(self.dataset.image_info[image_id]["id"], image_id))
-
         # Skip images that have no instances. This can happen in cases
         # where we train on a subset of classes and the image doesn't
         # have any of the classes we care about.
