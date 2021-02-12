@@ -42,7 +42,6 @@ import datetime
 from distutils.util import strtobool
 import os
 import numpy as np
-import matplotlib.pyplot as plt
 import random
 import sys
 import time
@@ -303,8 +302,9 @@ if __name__ == '__main__':
                         help="Evaluate with test or validation set (default=validation)")
     parser.add_argument('--random', required=False,
                         default=None,
-                        metavar='Any integer',
-                        help='Set random seed for consistent results (default=None)')
+                        metavar='Any integer or leave empty',
+                        help='Set random seed for consistent results. For randomness leave empty or remove argument ('
+                             'default=None)')
     parser.add_argument('--schedule', required=False,
                         default='example',
                         metavar='"example", "all", "3+", "4+", "heads"',
@@ -317,14 +317,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Set random seed
-    if type(args.random) is int:
-        seed = int(args.random)
-        random.seed(seed)
+    if args.random:
+        args.random = int(args.random)
+        random.seed(args.random)
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
-        torch.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-        np.random.seed(seed)
+        torch.manual_seed(args.random)
+        torch.cuda.manual_seed_all(args.random)
+        np.random.seed(args.random)
         print("Random seed PyTorch, NumPy, and random set to {}".format(args.random))
 
     # Select weights file to load
@@ -458,51 +458,44 @@ if __name__ == '__main__':
             print("Training network heads")
             model.train_model(dataset_train, dataset_val,
                               learning_rate=config.LEARNING_RATE,
-                              epochs=40,
-                              layers='heads', seed=args.random)
+                              epochs=40, layers='heads')
 
             # Training - Stage 2
             # Fine tune layers from ResNet stage 4 and up
             print("Fine tune Resnet stage 4 and up")
             model.train_model(dataset_train, dataset_val,
                               learning_rate=config.LEARNING_RATE,
-                              epochs=120,
-                              layers='4+', seed=args.random)
+                              epochs=120, layers='4+')
 
             # Training - Stage 3
             # Fine tune all layers
             print("Fine tune all layers - lr / 10")
             model.train_model(dataset_train, dataset_val,
                               learning_rate=config.LEARNING_RATE / 10,
-                              epochs=160,
-                              layers='all', seed=args.random)
+                              epochs=160, layers='all')
 
         elif args.schedule == 'all':
             # Fine tune all layers, use with pre-trained imagenet or no pre-trained network
             print("Fine tune all layers")
             model.train_model(dataset_train, dataset_val,
                               learning_rate=config.LEARNING_RATE,
-                              epochs=120,
-                              layers='all', seed=args.random)
+                              epochs=120, layers='all')
 
             print("Fine tune all layers - lr / 10")
             model.train_model(dataset_train, dataset_val,
                               learning_rate=config.LEARNING_RATE / 10,
-                              epochs=160,
-                              layers='all', seed=args.random)
+                              epochs=160, layers='all')
 
         elif args.schedule == '3+':
             # Pre-trained imagenet schedule mask-rcnn
             print("Fine tune Resnet stage 3 and up")
             model.train_model(dataset_train, dataset_val,
                               learning_rate=config.LEARNING_RATE,
-                              epochs=120,
-                              layers='3+', seed=args.random)
+                              epochs=120, layers='3+')
             print("Fine tune Resnet stage 3 and up, lr / 10")
             model.train_model(dataset_train, dataset_val,
                               learning_rate=config.LEARNING_RATE / 10,
-                              epochs=160,
-                              layers='3+', seed=args.random)
+                              epochs=160, layers='3+')
 
         end_time = time.process_time()
         with open(config.file, "a") as f:

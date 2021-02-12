@@ -1069,7 +1069,7 @@ def load_image_gt(dataset, config, image_id, augment=False):
             image = np.fliplr(image)
 
     # bboxes: [num_instances, (y1, x1, y2, x2)]
-    bboxes, class_ids = utils.extract_bboxes_coco(dataset.image_info['id' == image_id])
+    bboxes, class_ids = utils.extract_bboxes_coco(dataset.image_info[image_id])
 
     # Active classes
     # Different datasets have different classes, so track the
@@ -1226,6 +1226,9 @@ class Dataset(torch.utils.data.Dataset):
         image_id = self.image_ids[image_index]
         image, image_metas, gt_class_ids, gt_boxes = \
             load_image_gt(self.dataset, self.config, image_id, augment=self.augment)
+
+        visualize.display_instances(image, gt_boxes, gt_class_ids, ["BG", "lamp post"],
+                                    title="{} ({})".format(self.dataset.image_info[image_id]["id"], image_id))
 
         # Skip images that have no instances. This can happen in cases
         # where we train on a subset of classes and the image doesn't
@@ -1543,7 +1546,7 @@ class MaskRCNN(nn.Module):
 
             return [rpn_class_logits, rpn_bbox, target_class_ids, mrcnn_class_logits, target_deltas, mrcnn_bbox]
 
-    def train_model(self, train_dataset, val_dataset, learning_rate, epochs, layers, seed):
+    def train_model(self, train_dataset, val_dataset, learning_rate, epochs, layers):
         """Train the model.
         train_dataset, val_dataset: Training and validation Dataset objects.
         learning_rate: The learning rate to train with
@@ -1580,12 +1583,10 @@ class MaskRCNN(nn.Module):
         # Data generators
         train_set = Dataset(train_dataset, self.config, augment=True)
         train_generator = torch.utils.data.DataLoader(train_set, batch_size=1, shuffle=True,
-                                                      num_workers=self.config.NUMBER_OF_WORKERS,
-                                                      worker_init_fn=random.seed(seed))
+                                                      num_workers=self.config.NUMBER_OF_WORKERS)
         val_set = Dataset(val_dataset, self.config, augment=True)
         val_generator = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=True,
-                                                    num_workers=self.config.NUMBER_OF_WORKERS,
-                                                    worker_init_fn=random.seed(seed))
+                                                    num_workers=self.config.NUMBER_OF_WORKERS)
 
         # Train
         log("\nStarting at epoch {}. LR={}\n".format(self.epoch + 1, learning_rate))
