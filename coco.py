@@ -248,6 +248,31 @@ def evaluate_coco(model, dataset, coco, display, eval_type="bbox", limit=0, imag
 #  Training
 ############################################################
 
+def find_last(models_dir):
+    """Finds the last checkpoint file of the last trained model in the
+    model directory.
+    Returns:
+        log_dir: The directory where events and weights are saved
+        checkpoint_path: the path to the last checkpoint file
+    """
+    # Get directory names. Each directory corresponds to a model
+    dir_names = next(os.walk(models_dir))[1]
+    # key = self.config.NAME.lower()
+    # dir_names = filter(lambda f: f.startswith(key), dir_names)
+    dir_names = sorted(dir_names, key=lambda f: f[-13:])
+    if not dir_names:
+        return None, None
+    # Pick last directory
+    dir_name = os.path.join(models_dir, dir_names[-1])
+    # Find the last checkpoint
+    checkpoints = next(os.walk(dir_name))[2]
+    checkpoints = filter(lambda f: f.startswith("mask_rcnn"), checkpoints)
+    checkpoints = sorted(checkpoints)
+    if not checkpoints:
+        return dir_name, None
+    checkpoint = os.path.join(dir_name, checkpoints[-1])
+    return dir_name, checkpoint
+
 
 if __name__ == '__main__':
     import argparse
@@ -302,6 +327,28 @@ if __name__ == '__main__':
         np.random.seed(seed)
         print("Random seed PyTorch, NumPy, and random set to {}".format(args.random))
 
+    # Select weights file to load
+    if isinstance(args.model, str):
+        model_command = args.model.lower()
+        if model_command == "last":
+            # Find last trained weights
+            model_dir, model_path = find_last(args.logs)
+        elif model_command[-3:] == 'pth':
+            model_path = args.model
+            model_dir = model_path.split(os.path.basename(model_path))[0]
+        elif model_command == "coco":
+            # Start from COCO trained weights - not working yet
+            model_path = COCO_MODEL_PATH
+            model_dir = os.path.join(model_path.split(os.path.basename(model_path))[0], model_command)
+        elif model_command == "imagenet":
+            # Start from ImageNet trained weights
+            model_path = IMAGENET_MODEL_PATH
+            model_dir = os.path.join(model_path.split(os.path.basename(model_path))[0], model_command)
+        else:
+            model_path = args.model
+    else:
+        model_path = ""
+
     # Configurations
     if args.command == "train":
         config = Config()
@@ -316,14 +363,50 @@ if __name__ == '__main__':
             start_model_name = ""
         config.NAME = config.NAME + "_" + start_model_name + "-"
     else:
-        class TempConfig(Config):
+        class InferenceConfig(Config):
+            # Read config file and convert back to original variable format
+            # Anchor ratios, stride, scales etc. have to be the same for evaluation as for training.
+            config_file = os.path.join(model_dir, "config.txt")
+            with open(config_file) as f:
+                config_list = f.readlines()
+            config_list = config_list[5:]  # Remove backbone shapes
+            if config_list[-1][:5] == "Total":
+                config_list = config_list[:-3]  # cutoff file newline and total time
+            for line in config_list:
+                line_split = line.split(None, 1)
+                var_name = line_split[0].strip()
+                var_value = line_split[1].strip()
+                if ',' in var_value:  # if it's a list
+                    var_value = var_value[1:-1]
+                    if '.' in var_value:
+                        var_value = [float(x.replace(',', '')) for x in var_value.split()]
+                    else:
+                        var_value = [int(x.replace(',', '')) for x in var_value.split()]
+                else:
+                    temp = var_value.split()
+                    start_char = ord(var_value[0])
+                    if len(temp) > 1:  # list with ' ' separator
+                        var_value = var_value[1:-1]  # get rid of brackets
+                        if '.' in var_value:
+                            var_value = np.fromstring(var_value, dtype=float, sep=' ')
+                        else:
+                            var_value = np.fromstring(var_value, dtype=int, sep=' ')
+                    elif start_char > ord('9') or start_char < ord('0'):  # text values
+                        if var_value[0] == "T" or var_value[0] == "F":
+                            var_value = bool(strtobool(var_value))
+                    else:  # single digit
+                        if '.' in var_value:
+                            var_value = float(var_value)
+                        else:
+                            var_value = int(var_value)
+                exec(var_name + " = var_value")
             # Set batch size to 1 since we'll be running inference on
             # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
             GPU_COUNT = 1
             IMAGES_PER_GPU = 1
             DETECTION_MIN_CONFIDENCE = 0
 
-        config = TempConfig()
+        config = InferenceConfig()
     # Save run config commands for reference
     config.RUN_CONFIG = args.__dict__
 
@@ -333,32 +416,11 @@ if __name__ == '__main__':
     # modellib.device = torch.device("cpu")
     # For some reason parallel running anything doesn't work with these settings when training layers "3+"
     model = modellib.MaskRCNN(config=config, models_dir=args.logs)
+    model.model_dir = model_dir
 
     # if config.GPU_COUNT > 1:
     #     model = torch.nn.DataParallel(model)  For being able to use multiple GPUs, but this requires rewriting a lot
     model.to(modellib.device)
-
-    # Select weights file to load
-    if isinstance(args.model, str):
-        model_command = args.model.lower()
-        if model_command == "last":
-            # Find last trained weights
-            model.model_dir, model_path = model.find_last()
-        elif model_command[-3:] == 'pth':
-            model_path = args.model
-            model.model_dir = model_path.split(os.path.basename(model_path))[0]
-        elif model_command == "coco":
-            # Start from COCO trained weights - not working yet
-            model_path = COCO_MODEL_PATH
-            model.model_dir = os.path.join(model_path.split(os.path.basename(model_path))[0], model_command)
-        elif model_command == "imagenet":
-            # Start from ImageNet trained weights
-            model_path = IMAGENET_MODEL_PATH
-            model.model_dir = os.path.join(model_path.split(os.path.basename(model_path))[0], model_command)
-        else:
-            model_path = args.model
-    else:
-        model_path = ""
 
     # Train or evaluate
     if args.command == "train":
@@ -447,44 +509,6 @@ if __name__ == '__main__':
             f.write("\nTotal time elapsed: {} hours\n".format(round((end_time - start_time) / 3600.0, 2)))
 
     elif args.command == "evaluate":
-        # TODO: get config settings from config file
-        # Read config file and convert back to original variable format
-        # Anchor ratios, stride, scales etc. have to be the same for evaluation as for training.
-        config_file = os.path.join(model.model_dir, "config.txt")
-        with open(config_file) as f:
-            config_list = f.readlines()
-        config_list = config_list[5:]  # Remove backbone shapes
-        for line in config_list:
-            line_split = line.split(None, 1)
-            var_name = line_split[0].strip()
-            var_value = line_split[1].strip()
-            if ',' in var_value:  # if it's a list
-                var_value = var_value[1:-1]
-                if '.' in var_value:
-                    var_value = [float(x.replace(',', '')) for x in var_value.split()]
-                else:
-                    var_value = [int(x.replace(',', '')) for x in var_value.split()]
-            else:
-                temp = var_value.split()
-                start_char = ord(var_value[0])
-                if len(temp) > 1:  # list with ' ' separator
-                    var_value = var_value[1:-1]  # get rid of brackets
-                    if '.' in var_value:
-                        var_value = np.fromstring(var_value, dtype=float, sep=' ')
-                    else:
-                        var_value = np.fromstring(var_value, dtype=int, sep=' ')
-                elif start_char > ord('9') or start_char < ord('0'):  # text values
-                    if var_value[0] == "T" or var_value == "F":
-                        var_value = bool(strtobool(var_value))
-                else:  # single digit
-                    if '.' in var_value:
-                        var_value = float(var_value)
-                    else:
-                        var_value = int(var_value)
-            exec("config." + var_name + " = var_value")
-
-        config.__init__()
-
         model.load_weights(model_path)
 
         # Change output to text file
