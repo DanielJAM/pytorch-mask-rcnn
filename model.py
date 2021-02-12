@@ -1581,10 +1581,10 @@ class MaskRCNN(nn.Module):
             layers = layer_regex[layers]
 
         # Data generators
-        train_set = Dataset(train_dataset, self.config, augment=True)
+        train_set = Dataset(train_dataset, self.config, augment=False)
         train_generator = torch.utils.data.DataLoader(train_set, batch_size=1, shuffle=True,
                                                       num_workers=self.config.NUMBER_OF_WORKERS)
-        val_set = Dataset(val_dataset, self.config, augment=True)
+        val_set = Dataset(val_dataset, self.config, augment=False)
         val_generator = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=True,
                                                     num_workers=self.config.NUMBER_OF_WORKERS)
 
