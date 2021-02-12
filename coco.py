@@ -425,11 +425,11 @@ if __name__ == '__main__':
     #     model = torch.nn.DataParallel(model)  For being able to use multiple GPUs, but this requires rewriting a lot
     model.to(modellib.device)
 
-    if args.command == "last" or args.command[-3:] == "pth":
-        model.model_dir = model_dir
-
     # Train or evaluate
     if args.command == "train":
+        if args.model == "last" or args.model[-3:] == "pth":
+            model.model_dir = model_dir
+
         start_time = time.process_time()
 
         print("Command: ", args.command)
@@ -508,6 +508,9 @@ if __name__ == '__main__':
             f.write("\nTotal time elapsed: {} hours\n".format(round((end_time - start_time) / 3600.0, 2)))
 
     elif args.command == "evaluate":
+        if 'model_dir' in locals():
+            model.model_dir = model_dir
+
         model.load_weights(model_path)
 
         # Change output to text file
