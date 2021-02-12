@@ -420,11 +420,13 @@ if __name__ == '__main__':
     # modellib.device = torch.device("cpu")
     # For some reason parallel running anything doesn't work with these settings when training layers "3+"
     model = modellib.MaskRCNN(config=config, models_dir=args.logs)
-    model.model_dir = model_dir
 
     # if config.GPU_COUNT > 1:
     #     model = torch.nn.DataParallel(model)  For being able to use multiple GPUs, but this requires rewriting a lot
     model.to(modellib.device)
+
+    if args.command == "last" or args.command[-3:] == "pth":
+        model.model_dir = model_dir
 
     # Train or evaluate
     if args.command == "train":
