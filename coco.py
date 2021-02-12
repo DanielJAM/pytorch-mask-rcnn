@@ -371,12 +371,14 @@ if __name__ == '__main__':
                 config_list = f.readlines()
             config_list = config_list[5:]  # Remove backbone shapes
             if config_list[-1][:5] == "Total":
-                config_list = config_list[:-3]  # cutoff file newline and total time
+                config_list = config_list[:-3]  # cutoff file, newline, and total time
             for line in config_list:
                 line_split = line.split(None, 1)
                 var_name = line_split[0].strip()
                 var_value = line_split[1].strip()
-                if ',' in var_value:  # if it's a list
+                if var_name == "RUN_CONFIG":
+                    continue
+                elif ',' in var_value:  # if it's a list
                     var_value = var_value[1:-1]
                     if '.' in var_value:
                         var_value = [float(x.replace(',', '')) for x in var_value.split()]
@@ -400,6 +402,8 @@ if __name__ == '__main__':
                         else:
                             var_value = int(var_value)
                 exec(var_name + " = var_value")
+            # cleanup variables
+            del(var_value, var_name, temp, config_list, config_file, line_split, start_char, line, f)
             # Set batch size to 1 since we'll be running inference on
             # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
             GPU_COUNT = 1
