@@ -1067,6 +1067,7 @@ def load_image_gt(dataset, config, image_id, augment=False):
     if augment:
         if random.randint(0, 1):
             image = np.fliplr(image)
+            # place underneath bbox acquisition and do "bboxes = np.fliplr(bboxes)"
 
     # bboxes: [num_instances, (y1, x1, y2, x2)]
     bboxes, class_ids = utils.extract_bboxes_coco(dataset.image_info[image_id])
@@ -1375,7 +1376,7 @@ class MaskRCNN(nn.Module):
         if model_path:
             # Continue from where we left off. Get epoch and date from the file name
             # A sample model path might look like:
-            # /path/to/logs/coco_type-20171029T2315/mask_rcnn_coco_0001.h5
+            # /path/to/logs/coco_type-20171029T2315/mask_rcnn_coco_0001.pth
             regex = r".*/\w+\_\w+\-(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/mask\_rcnn\_(\d{4})\.pth"
             m = re.match(regex, model_path)
             if m:
@@ -1391,8 +1392,7 @@ class MaskRCNN(nn.Module):
 
         # Path to save after each epoch. Include placeholders that get filled by Keras.
         self.checkpoint_path = os.path.join(self.log_dir, "mask_rcnn_*epoch*.pth")
-        self.checkpoint_path = self.checkpoint_path.replace(
-            "*epoch*", "{:04d}")
+        self.checkpoint_path = self.checkpoint_path.replace("*epoch*", "{:04d}")
 
     def load_weights(self, filepath):
         """Modified version of the corresponding Keras function with
@@ -1431,6 +1431,7 @@ class MaskRCNN(nn.Module):
         # To GPU
         molded_images = molded_images.to(device)
 
+        # TODO: check molding if source for weird detections
         # Speedup computation by not building gradient graph
         with torch.no_grad():
             # Run object detection
