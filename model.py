@@ -719,44 +719,48 @@ def refine_detections(rois, probs, deltas, window, config):
     # Filter out low confidence boxes
     if config.DETECTION_MIN_CONFIDENCE:
         keep_bool = keep_bool & (class_scores >= config.DETECTION_MIN_CONFIDENCE)
-    keep = torch.nonzero(keep_bool)[:, 0]
+    keep = torch.nonzero(keep_bool)
+    if len(keep) < 1:
+        result = torch.empty(0, 0)
+    else:  # Only if any detections of the non-background class are available
+        keep = keep[:, 0]
 
-    # Apply per-class NMS
-    pre_nms_class_ids = class_ids[keep.data]
-    pre_nms_scores = class_scores[keep.data]
-    pre_nms_rois = refined_rois[keep.data]
+        # Apply per-class NMS
+        pre_nms_class_ids = class_ids[keep.data]
+        pre_nms_scores = class_scores[keep.data]
+        pre_nms_rois = refined_rois[keep.data]
 
-    for i, class_id in enumerate(unique1d(pre_nms_class_ids)):
-        # Pick detections of this class
-        ixs = torch.nonzero(pre_nms_class_ids == class_id)[:, 0]
+        for i, class_id in enumerate(unique1d(pre_nms_class_ids)):
+            # Pick detections of this class
+            ixs = torch.nonzero(pre_nms_class_ids == class_id)[:, 0]
 
-        # Sort
-        ix_rois = pre_nms_rois[ixs.data]
-        ix_scores = pre_nms_scores[ixs]
-        ix_scores, order = ix_scores.sort(descending=True)
-        ix_rois = ix_rois[order.data, :]
+            # Sort
+            ix_rois = pre_nms_rois[ixs.data]
+            ix_scores = pre_nms_scores[ixs]
+            ix_scores, order = ix_scores.sort(descending=True)
+            ix_rois = ix_rois[order.data, :]
 
-        class_keep = nms(torch.cat((ix_rois, ix_scores.unsqueeze(1)), dim=1).data, config.DETECTION_NMS_THRESHOLD)
+            class_keep = nms(torch.cat((ix_rois, ix_scores.unsqueeze(1)), dim=1).data, config.DETECTION_NMS_THRESHOLD)
 
-        # Map indices
-        class_keep = keep[ixs[order[class_keep].data].data]
+            # Map indices
+            class_keep = keep[ixs[order[class_keep].data].data]
 
-        if i == 0:
-            nms_keep = class_keep
-        else:
-            nms_keep = unique1d(torch.cat((nms_keep, class_keep)))
-    keep = intersect1d(keep, nms_keep)
+            if i == 0:
+                nms_keep = class_keep
+            else:
+                nms_keep = unique1d(torch.cat((nms_keep, class_keep)))
+        keep = intersect1d(keep, nms_keep)
 
-    # Keep top detections
-    roi_count = config.DETECTION_MAX_INSTANCES
-    top_ids = class_scores[keep.data].sort(descending=True)[1][:roi_count]
-    keep = keep[top_ids.data]
+        # Keep top detections
+        roi_count = config.DETECTION_MAX_INSTANCES
+        top_ids = class_scores[keep.data].sort(descending=True)[1][:roi_count]
+        keep = keep[top_ids.data]
 
-    # Arrange output as [N, (y1, x1, y2, x2, class_id, score)]
-    # Coordinates are in image domain.
-    result = torch.cat((refined_rois[keep.data],
-                        class_ids[keep.data].unsqueeze(1).float(),
-                        class_scores[keep.data].unsqueeze(1)), dim=1)
+        # Arrange output as [N, (y1, x1, y2, x2, class_id, score)]
+        # Coordinates are in image domain.
+        result = torch.cat((refined_rois[keep.data],
+                            class_ids[keep.data].unsqueeze(1).float(),
+                            class_scores[keep.data].unsqueeze(1)), dim=1)
 
     return result
 
@@ -1425,6 +1429,10 @@ class MaskRCNN(nn.Module):
         # Mold inputs to format expected by the neural network
         molded_images, image_metas, windows = self.mold_inputs(images)
 
+        # import matplotlib.pyplot as plt
+        # plt.imshow(molded_images[0])
+        # plt.show()
+
         # Convert images to torch tensor
         molded_images = torch.from_numpy(molded_images.transpose(0, 3, 1, 2)).float()
 
@@ -1442,14 +1450,15 @@ class MaskRCNN(nn.Module):
 
         # Process detections
         results = []
-        for i, image in enumerate(images):
-            final_rois, final_class_ids, final_scores = \
-                self.unmold_detections(detections[i], image.shape, windows[i])
-            results.append({
-                "rois": final_rois,
-                "class_ids": final_class_ids,
-                "scores": final_scores,
-            })
+        if len(detections):
+            for i, image in enumerate(images):
+                final_rois, final_class_ids, final_scores = \
+                    self.unmold_detections(detections[i], image.shape, windows[i])
+                results.append({
+                    "rois": final_rois,
+                    "class_ids": final_class_ids,
+                    "scores": final_scores,
+                })
         return results
 
     def predict(self, input, mode):
@@ -1510,7 +1519,8 @@ class MaskRCNN(nn.Module):
             detections = detection_layer(self.config, rpn_rois, mrcnn_class, mrcnn_bbox, image_metas)
 
             # Add back batch dimension
-            detections = detections.unsqueeze(0)
+            if len(detections):
+                detections = detections.unsqueeze(0)
 
             return [detections]
 
@@ -1904,7 +1914,7 @@ def parse_image_meta(meta):
     """
     image_id = meta[:, 0]
     image_shape = meta[:, 1:4]
-    window = meta[:, 4:8]  # (y1, x1, y2, x2) window of image in in pixels
+    window = meta[:, 4:8]  # (y1, x1, y2, x2) window of image in pixels
     active_class_ids = meta[:, 8:]
     return image_id, image_shape, window, active_class_ids
 

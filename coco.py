@@ -211,21 +211,28 @@ def evaluate_coco(model, dataset, coco, display, eval_type="bbox", limit=0, imag
         # Load image
         image = dataset.load_image(image_id)
 
+        # import matplotlib.pyplot as plt
+        # plt.imshow(image)
+        # plt.show()
+
         # Run detection
         t = time.time()
-        r = model.detect([image])[0]
+        r = model.detect([image])
         t_prediction += (time.time() - t)
 
-        # Visualize result
-        if display == "True":
-            visualize.display_instances(image, r['rois'], r['class_ids'], dataset.class_names, r['scores'],
-                                        title="Predictions", figsize=image.shape[:2])
+        if r:
+            r = r[0]  # Unpack results
 
-        # Convert results to COCO format
-        image_results = build_coco_results(dataset, coco_image_ids[i:i + 1],
-                                           r["rois"], r["class_ids"],
-                                           r["scores"])
-        results.extend(image_results)
+            # Visualize result
+            if display == "True":
+                visualize.display_instances(image, r['rois'], r['class_ids'], dataset.class_names, r['scores'],
+                                            title="Predictions", figsize=image.shape[:2])
+
+            # Convert results to COCO format
+            image_results = build_coco_results(dataset, coco_image_ids[i:i + 1],
+                                               r["rois"], r["class_ids"],
+                                               r["scores"])
+            results.extend(image_results)
 
     # Load results. This modifies results with additional attributes.
     coco_results = coco.loadRes(results)
