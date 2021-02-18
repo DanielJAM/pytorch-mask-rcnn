@@ -1074,10 +1074,9 @@ def load_image_gt(dataset, config, image_id, augment=False):
     if augment:
         if random.randint(0, 1):
             image = np.fliplr(image)
-            boxes_flip = []
             for box in bboxes:
-                boxes_flip.append([config.IMAGE_MAX_DIM - x if i % 2 == 0 else x for i, x in enumerate(box)])
-            bboxes = np.array(boxes_flip)
+                box[0] = config.IMAGE_MAX_DIM - box[0]
+                box[2] = config.IMAGE_MAX_DIM - box[2]
 
     # Active classes
     # Different datasets have different classes, so track the
