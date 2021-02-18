@@ -1067,14 +1067,17 @@ def load_image_gt(dataset, config, image_id, augment=False):
         max_dim=config.IMAGE_MAX_DIM,
         padding=config.IMAGE_PADDING)
 
-    # Random horizontal flips.
+    # bboxes: [num_instances, (y1, x1, y2, x2)]
+    bboxes, class_ids = utils.extract_bboxes_coco(dataset.image_info[image_id])
+
+    # Random horizontal flips. Now also on bboxes.
     if augment:
         if random.randint(0, 1):
             image = np.fliplr(image)
-            # place underneath bbox acquisition and do "bboxes = np.fliplr(bboxes)"
-
-    # bboxes: [num_instances, (y1, x1, y2, x2)]
-    bboxes, class_ids = utils.extract_bboxes_coco(dataset.image_info[image_id])
+            boxes_flip = []
+            for box in bboxes:
+                boxes_flip.append([config.IMAGE_MAX_DIM - x if i % 2 == 0 else x for i, x in enumerate(box)])
+            bboxes = np.array(boxes_flip)
 
     # Active classes
     # Different datasets have different classes, so track the
