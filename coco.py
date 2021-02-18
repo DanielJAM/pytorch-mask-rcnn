@@ -357,7 +357,7 @@ if __name__ == '__main__':
         model_path = ""
 
     # Configurations
-    if args.command == "train":
+    if args.command == "train" and args.model != "last":
         config = Config()
 
         # Add starting model name to log folder
@@ -411,11 +411,13 @@ if __name__ == '__main__':
                 exec(var_name + " = var_value")
             # cleanup variables
             del(var_value, var_name, temp, config_list, config_file, line_split, start_char, line, f)
-            # Set batch size to 1 since we'll be running inference on
-            # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
-            GPU_COUNT = 1
-            IMAGES_PER_GPU = 1
-            DETECTION_MIN_CONFIDENCE = 0
+
+            if args.model != "last":
+                # Set batch size to 1 since we'll be running inference on
+                # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
+                GPU_COUNT = 1
+                IMAGES_PER_GPU = 1
+                DETECTION_MIN_CONFIDENCE = 0
 
         config = InferenceConfig()
     # Save run config commands for reference
@@ -437,7 +439,8 @@ if __name__ == '__main__':
         if args.model == "last" or args.model[-3:] == "pth":
             model.model_dir = model_dir
 
-        start_time = time.process_time()
+        if 'config.start_time' not in locals():
+            config.start_time = time.process_time()
 
         print("Command: ", args.command)
         print("Model: ", args.model)
