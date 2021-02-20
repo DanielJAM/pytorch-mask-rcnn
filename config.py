@@ -8,6 +8,7 @@ Written by Waleed Abdulla
 Edited by Daniel Maaskant
 """
 
+import datetime
 import math
 import numpy as np
 import os
@@ -49,7 +50,7 @@ class Config(object):
     # Validation stats are also calculated at each epoch end and they
     # might take a while, so don't set this too small to avoid spending
     # a lot of time on validation stats.
-    STEPS_PER_EPOCH = 322  # possibly set to 1/10th of current train set: 797
+    STEPS_PER_EPOCH = 1000  # possibly set to 1/10th of current train set: 797
 
     # Number of validation steps to run at the end of every training epoch.
     # A bigger number improves accuracy of validation stats, but slows
@@ -57,17 +58,17 @@ class Config(object):
     VALIDATION_STEPS = 50
 
     # The strides of each layer of the FPN Pyramid. These values
-    # are based on a Resnet101 backbone.
+    # are based on a Resnet101 backbone. - must be equal length as RPN_ANCHOR_SCALES
     BACKBONE_STRIDES = [4, 8, 16, 32, 64]
 
     # Number of classification classes (including background)
     NUM_CLASSES = 2  # Override in sub-classes
 
-    # Length of square anchor side in pixels
-    RPN_ANCHOR_SCALES = (16, 32, 64, 128, 256)  # (16, 32, 64, 128, 256, 512)
+    # Length of square anchor side in pixels - must be equal length as BACKBONE_STRIDES
+    RPN_ANCHOR_SCALES = (8, 16, 32, 64, 128)
 
     # Ratios of anchors at each cell (width/height)
-    # A value of 1 represents a square anchor, and 0.5 is a wide anchor
+    # A value of 1 represents a square anchor, and 0.5 is a tall anchor
     RPN_ANCHOR_RATIOS = [0.5, 0.25, 0.125]
 
     # Anchor stride
@@ -102,8 +103,8 @@ class Config(object):
     IMAGE_PADDING = True  # currently, the False option is not supported
 
     # Image mean (RGB)
-    MEAN_PIXEL = np.array([116.9, 119.9, 119.9])  # old: 123.7, 116.8, 103.9  # new: 129.1, 132.9, 133.7
-    # GT set mean: [116.86444829030762, 119.87119041336445, 119.94218347391956]
+    MEAN_PIXEL = np.array([116.86, 119.87, 119.94])  # old: 123.7, 116.8, 103.9  # new: 129.1, 132.9, 133.7
+    # GT set mean: [116.86, 119.87, 119.94]
     # TMX7315080123-000281_pano_0000_000249 has 137.4, 137.8, 135.0
     # TMX7316010203-001192_pano_0002_000595.jpg has 129.1, 132.9, 133.7
 
@@ -143,7 +144,7 @@ class Config(object):
     # The Mask RCNN paper uses lr=0.02, but on TensorFlow it causes
     # weights to explode. Likely due to differences in optimiser
     # implementation.
-    LEARNING_RATE = 0.02  # 0.001 / 0.00001,  0.02 in Mask-RCNN paper - 0.006
+    LEARNING_RATE = 0.001  # 0.001 / 0.00001,  0.02 in Mask-RCNN paper - 0.006
     LEARNING_MOMENTUM = 0.9  # 0.9 Mask-RCNN paper
 
     # Weight decay regularization
@@ -170,15 +171,13 @@ class Config(object):
         # Input image size
         self.IMAGE_SHAPE = np.array(
             [self.IMAGE_MIN_DIM, self.IMAGE_MAX_DIM, 3])
-            # MAX, MAX
+        # MAX, MAX
 
         # Compute backbone size from input image size
         self.BACKBONE_SHAPES = np.array(
             [[int(math.ceil(self.IMAGE_SHAPE[0] / stride)),
               int(math.ceil(self.IMAGE_SHAPE[1] / stride))]
              for stride in self.BACKBONE_STRIDES])
-
-        self.file = ""
 
     def display(self):
         """Display Configuration values."""
@@ -190,11 +189,16 @@ class Config(object):
 
     def to_txt(self, log_dir):
         """Save Configuration values in text file."""
-        if not self.file:
+        if 'self.file' not in locals():
             self.file = os.path.join(log_dir + "/config.txt")
         if not os.path.exists(self.file):
-            config_txt = open(self.file, "x")
-            for a in dir(self):
-                if not a.startswith("__") and not callable(getattr(self, a)):
-                    config_txt.write("{:30} {}\n".format(a, getattr(self, a)))
-                # config_txt.write("\n")
+            with open(self.file, "x") as config_txt:
+                for a in dir(self):
+                    if not a.startswith("__") and not callable(getattr(self, a)):
+                        config_txt.write("{:30} {}\n".format(a, getattr(self, a)))
+
+    def save_time(self):
+        """Save intermediate training time to config text file"""
+        with open(self.file, "a") as config_txt:
+            config_txt.write("{:30} {} @ {}\n".format(
+                "intermediate_time", self.intermediate_time, datetime.datetime.now()))

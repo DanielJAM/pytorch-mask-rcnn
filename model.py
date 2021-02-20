@@ -1556,7 +1556,7 @@ class MaskRCNN(nn.Module):
 
             return [rpn_class_logits, rpn_bbox, target_class_ids, mrcnn_class_logits, target_deltas, mrcnn_bbox]
 
-    def train_model(self, train_dataset, val_dataset, learning_rate, epochs, layers):
+    def train_model(self, train_dataset, val_dataset, config, learning_rate, epochs, layers):
         """Train the model.
         train_dataset, val_dataset: Training and validation Dataset objects.
         learning_rate: The learning rate to train with
@@ -1573,6 +1573,7 @@ class MaskRCNN(nn.Module):
               4+: Train Resnet stage 4 and up
               5+: Train Resnet stage 5 and up
         """
+        start_train = datetime.datetime.now()
 
         # Pre-defined layer regular expressions
         layer_regex = {
@@ -1614,7 +1615,10 @@ class MaskRCNN(nn.Module):
             {'params': trainables_only_bn}
         ], lr=learning_rate, momentum=self.config.LEARNING_MOMENTUM)
 
+        config.intermediate_time += datetime.timedelta.total_seconds(datetime.datetime.now() - start_train)
+
         for epoch in range(self.epoch + 1, epochs + 1):
+            start_epoch = datetime.datetime.now()
             log("Epoch {}/{}.".format(epoch, epochs))
 
             # start_train = round(time.process_time(), 2)
@@ -1649,6 +1653,8 @@ class MaskRCNN(nn.Module):
 
             # saving = round(time.process_time(), 2)
             # print("Saving took:", saving - end_validation, "seconds\t total elapsed:", saving)
+            config.intermediate_time += datetime.timedelta.total_seconds(datetime.datetime.now() - start_epoch)
+            config.save_time()
 
         # Only update if not continuing from an already higher epoch, otherwise return to correct part for this epoch
         if self.epoch < epochs:

@@ -383,10 +383,12 @@ if __name__ == '__main__':
                 line_split = line.split(None, 1)
                 var_name = line_split[0].strip()
                 var_value = line_split[1].strip()
-                if var_name == "RUN_CONFIG":
+                if var_name == "RUN_CONFIG" or var_name == "START_TIME":
                     continue
+                elif var_name == "intermediate_time":
+                    var_value = float(var_value.split(" ", 1)[0])
                 elif ',' in var_value:  # if it's a list
-                    var_value = var_value[1:-1]
+                    var_value = var_value[1:-1]  # remove '[' and ']'
                     if '.' in var_value:
                         var_value = [float(x.replace(',', '')) for x in var_value.split()]
                     else:
@@ -395,7 +397,7 @@ if __name__ == '__main__':
                     temp = var_value.split()
                     start_char = ord(var_value[0])
                     if len(temp) > 1:  # list with ' ' separator
-                        var_value = var_value[1:-1]  # get rid of brackets
+                        var_value = var_value[1:-1]  # remove '[' and ']'
                         if '.' in var_value:
                             var_value = np.fromstring(var_value, dtype=float, sep=' ')
                         else:
@@ -436,11 +438,15 @@ if __name__ == '__main__':
 
     # Train or evaluate
     if args.command == "train":
+
+        # Fix variables if training with model previously trained by this repository
         if args.model == "last" or args.model[-3:] == "pth":
             model.model_dir = model_dir
+        else:
+            config.START_TIME = datetime.datetime.now()
+            config.intermediate_time = 0
 
-        if 'config.start_time' not in locals():
-            config.start_time = time.process_time()
+        start_train = datetime.datetime.now()
 
         print("Command: ", args.command)
         print("Model: ", args.model)
@@ -467,55 +473,56 @@ if __name__ == '__main__':
         dataset_val.load_coco(args.dataset, "validation")
         dataset_val.prepare()
 
+        config.intermediate_time += datetime.timedelta.total_seconds(datetime.datetime.now() - start_train)
+
         # TRAINING SCHEDULES
         # at 75 % reduce lr 10 fold
         if args.schedule == 'example':
             # Training - Stage 1
             print("Training network heads")
-            model.train_model(dataset_train, dataset_val,
+            model.train_model(dataset_train, dataset_val, config,
                               learning_rate=config.LEARNING_RATE,
                               epochs=40, layers='heads')
 
             # Training - Stage 2
             # Fine tune layers from ResNet stage 4 and up
             print("Fine tune Resnet stage 4 and up")
-            model.train_model(dataset_train, dataset_val,
+            model.train_model(dataset_train, dataset_val, config,
                               learning_rate=config.LEARNING_RATE,
                               epochs=120, layers='4+')
 
             # Training - Stage 3
             # Fine tune all layers
             print("Fine tune all layers - lr / 10")
-            model.train_model(dataset_train, dataset_val,
+            model.train_model(dataset_train, dataset_val, config,
                               learning_rate=config.LEARNING_RATE / 10,
                               epochs=160, layers='all')
 
         elif args.schedule == 'all':
             # Fine tune all layers, use with pre-trained imagenet or no pre-trained network
             print("Fine tune all layers")
-            model.train_model(dataset_train, dataset_val,
+            model.train_model(dataset_train, dataset_val, config,
                               learning_rate=config.LEARNING_RATE,
                               epochs=120, layers='all')
 
             print("Fine tune all layers - lr / 10")
-            model.train_model(dataset_train, dataset_val,
+            model.train_model(dataset_train, dataset_val, config,
                               learning_rate=config.LEARNING_RATE / 10,
                               epochs=160, layers='all')
 
         elif args.schedule == '3+':
             # Pre-trained imagenet schedule mask-rcnn
             print("Fine tune Resnet stage 3 and up")
-            model.train_model(dataset_train, dataset_val,
+            model.train_model(dataset_train, dataset_val, config,
                               learning_rate=config.LEARNING_RATE,
                               epochs=120, layers='3+')
             print("Fine tune Resnet stage 3 and up, lr / 10")
-            model.train_model(dataset_train, dataset_val,
+            model.train_model(dataset_train, dataset_val, config,
                               learning_rate=config.LEARNING_RATE / 10,
                               epochs=160, layers='3+')
 
-        end_time = time.process_time()
         with open(config.file, "a") as f:
-            f.write("\nTotal time elapsed: {} hours\n".format(round((end_time - start_time) / 3600.0, 2)))
+            f.write("\nTotal time elapsed: \n".format(datetime.timedelta(seconds=config.intermediate_time)))
 
     elif args.command == "evaluate":
         if 'model_dir' in locals():
