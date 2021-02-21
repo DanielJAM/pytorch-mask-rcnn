@@ -522,7 +522,7 @@ if __name__ == '__main__':
                               epochs=160, layers='3+')
 
         with open(config.file, "a") as f:
-            f.write("\nTotal time elapsed: \n".format(datetime.timedelta(seconds=config.intermediate_time)))
+            f.write("\nTotal time elapsed: {}\n".format(datetime.timedelta(seconds=config.intermediate_time)))
 
     elif args.command == "evaluate":
         if 'model_dir' in locals():
