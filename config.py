@@ -29,9 +29,10 @@ class Config(object):
     # Name the configurations. For example, 'COCO', 'Experiment 3', ...etc.
     # Useful if your code needs to do things differently depending on which
     # experiment is running.
-    NAME = "PanorAMS"  # "5+_e50_mincf-0.7-"  # Override in sub-classes
+    NAME = "PanorAMS"  # Override in sub-classes
 
     # NUMBER OF GPUs to use. For CPU use 0
+    # Currently only supports 1 or 0.
     GPU_COUNT = 1
 
     # Number of images to train with on each GPU. A 12GB GPU can typically
@@ -41,7 +42,8 @@ class Config(object):
     IMAGES_PER_GPU = 1
 
     # Specify the number of subprocesses to use for each DataLoader.
-    NUMBER_OF_WORKERS = 1  # 16, 20
+    # Currently only supports 1.
+    NUMBER_OF_WORKERS = 1
 
     # Number of training steps per epoch
     # This doesn't need to match the size of the training set. Tensorboard
@@ -65,7 +67,7 @@ class Config(object):
     NUM_CLASSES = 2  # Override in sub-classes
 
     # Length of square anchor side in pixels - must be equal length as BACKBONE_STRIDES
-    RPN_ANCHOR_SCALES = (8, 16, 32, 64, 128)
+    RPN_ANCHOR_SCALES = (128, 256, 512, 1024, 2048)
 
     # Ratios of anchors at each cell (width/height)
     # A value of 1 represents a square anchor, and 0.5 is a tall anchor
@@ -87,26 +89,18 @@ class Config(object):
     POST_NMS_ROIS_TRAINING = 2000
     POST_NMS_ROIS_INFERENCE = 1000
 
-    # # If enabled, resizes instance masks to a smaller size to reduce
-    # # memory load. Recommended when using high-resolution images.
-    # USE_MINI_MASK = True
-    # MINI_MASK_SHAPE = (56, 56)  # (height, width) of the mini-mask
-
     # Input image resizing
     # Images are resized such that the smallest side is >= IMAGE_MIN_DIM and
     # the longest side is <= IMAGE_MAX_DIM. In case both conditions can't
     # be satisfied together the IMAGE_MAX_DIM is enforced.
-    # Must be divisible by 2 for 6 times.
-    IMAGE_MIN_DIM = 704  # own: 704, 640  original: 800
-    IMAGE_MAX_DIM = 1408  # own: 1408, 1344  original: 1024
+    # Must be divisible by 32 (2^5).
+    IMAGE_MIN_DIM = 704
+    IMAGE_MAX_DIM = 1408
     # If True, pad images with zeros such that they're (max_dim by max_dim)
     IMAGE_PADDING = True  # currently, the False option is not supported
 
-    # Image mean (RGB)
-    MEAN_PIXEL = np.array([116.86, 119.87, 119.94])  # old: 123.7, 116.8, 103.9  # new: 129.1, 132.9, 133.7
-    # GT set mean: [116.86, 119.87, 119.94]
-    # TMX7315080123-000281_pano_0000_000249 has 137.4, 137.8, 135.0
-    # TMX7316010203-001192_pano_0002_000595.jpg has 129.1, 132.9, 133.7
+    # Mean pixel values of image dataset (RGB)
+    MEAN_PIXEL = np.array([116.86, 119.87, 119.94])
 
     # Number of ROIs per image to feed to classifier/mask heads
     # The Mask RCNN paper uses 512 but often the RPN doesn't generate
@@ -115,16 +109,14 @@ class Config(object):
     # the RPN NMS threshold.
     TRAIN_ROIS_PER_IMAGE = 200
 
-    # Percent of positive ROIs used to train classifier/mask heads
+    # Percent of positive ROIs used to train classifier heads
     ROI_POSITIVE_RATIO = 0.33
 
     # Pooled ROIs
     POOL_SIZE = 7
-    # MASK_POOL_SIZE = 14
-    # MASK_SHAPE = [28, 28]
 
     # Maximum number of ground truth instances to use in one image
-    MAX_GT_INSTANCES = 20  # 100
+    MAX_GT_INSTANCES = 20  # Max amount of GT boxes / image is 11
 
     # Bounding box refinement standard deviation for RPN and final detections.
     RPN_BBOX_STD_DEV = np.array([0.1, 0.1, 0.2, 0.2])
@@ -141,14 +133,14 @@ class Config(object):
     DETECTION_NMS_THRESHOLD = 0.3  # 0.3/0.5 by Mask-RCNN
 
     # Learning rate and momentum
-    # The Mask RCNN paper uses lr=0.02, but on TensorFlow it causes
+    # The Mask RCNN paper uses lr=0.02 and lm=0.9, but on TensorFlow it causes
     # weights to explode. Likely due to differences in optimiser
     # implementation.
-    LEARNING_RATE = 0.001  # 0.001 / 0.00001,  0.02 in Mask-RCNN paper - 0.006
-    LEARNING_MOMENTUM = 0.9  # 0.9 Mask-RCNN paper
+    LEARNING_RATE = 0.001
+    LEARNING_MOMENTUM = 0.9
 
-    # Weight decay regularization
-    WEIGHT_DECAY = 0.0001  # 0.0001 Mask-RCNN paper
+    # Weight decay regularization (0.0001 Mask-RCNN paper)
+    WEIGHT_DECAY = 0.0001
 
     # Use RPN ROIs or externally generated ROIs for training
     # Keep this True for most situations. Set to False if you want to train
