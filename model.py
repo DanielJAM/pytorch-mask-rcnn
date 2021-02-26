@@ -425,11 +425,11 @@ def pyramid_roi_align(inputs, pool_size, image_shape):
     constructor.
     """
 
-    # Currently only supports batchsize 1
+    # Currently only supports batch size 1
     for i in range(len(inputs)):
         inputs[i] = inputs[i].squeeze(0)
 
-    # Crop boxes [batch, num_boxes, (y1, x1, y2, x2)] in normalized coords
+    # Crop boxes [batch, num_boxes, (y1, x1, y2, x2)] in normalized coordinates
     boxes = inputs[0]
 
     # Feature Maps. List of feature maps from different level of the
@@ -446,7 +446,7 @@ def pyramid_roi_align(inputs, pool_size, image_shape):
     # e.g. a 224x224 ROI (in pixels) maps to P4
     image_area = Variable(torch.FloatTensor([float(image_shape[0] * image_shape[1])]), requires_grad=False)
     image_area = image_area.to(device)
-    roi_level = 4 + log2(torch.sqrt(h * w) / (224.0 / torch.sqrt(image_area)))
+    roi_level = 4 + log2(torch.sqrt(h * w) / (224.0 / torch.sqrt(image_area)))  # TODO: Check wat hier gebeurt
     roi_level = roi_level.round().int()
     roi_level = roi_level.clamp(2, 5)
 
@@ -1865,7 +1865,7 @@ class MaskRCNN(nn.Module):
         scores = detections[:N, 5]
 
         # Compute scale and shift to translate coordinates to image domain.
-        h_scale = image_shape[0] / (window[2] - window[0])
+        h_scale = image_shape[0] / (window[2] - window[0])  # TODO: Check if this is source of weird detections
         w_scale = image_shape[1] / (window[3] - window[1])
         scale = min(h_scale, w_scale)
         shift = window[:2]  # y, x
