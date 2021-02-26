@@ -1431,10 +1431,6 @@ class MaskRCNN(nn.Module):
         # Mold inputs to format expected by the neural network
         molded_images, image_metas, windows = self.mold_inputs(images)
 
-        # import matplotlib.pyplot as plt
-        # plt.imshow(molded_images[0])
-        # plt.show()
-
         # Convert images to torch tensor
         molded_images = torch.from_numpy(molded_images.transpose(0, 3, 1, 2)).float()
 
@@ -1474,8 +1470,8 @@ class MaskRCNN(nn.Module):
 
             # Set batchnorm always in eval mode during training
             def set_bn_eval(m):
-                classname = m.__class__.__name__
-                if classname.find('BatchNorm') != -1:
+                class_name = m.__class__.__name__
+                if class_name.find('BatchNorm') != -1:
                     m.eval()
 
             self.apply(set_bn_eval)
@@ -1533,9 +1529,10 @@ class MaskRCNN(nn.Module):
 
             # Normalize coordinates
             h, w = self.config.IMAGE_SHAPE[:2]
-            scale = Variable(torch.from_numpy(np.array([h, w, h, w])).float(), requires_grad=False)
-            scale = scale.to(device)
-            gt_boxes = gt_boxes / scale
+            scale = torch.from_numpy(np.array([h, w, h, w])).float()
+            with torch.no_grad:
+                scale = scale.to(device)
+                gt_boxes = gt_boxes / scale
 
             # Generate detection targets
             # Subsamples proposals and generates target outputs for training
@@ -1545,8 +1542,8 @@ class MaskRCNN(nn.Module):
                 detection_target_layer(rpn_rois, gt_class_ids, gt_boxes, self.config)
 
             if not rois.nelement():
-                mrcnn_class_logits = Variable(torch.FloatTensor())
-                mrcnn_bbox = Variable(torch.FloatTensor())
+                mrcnn_class_logits = torch.FloatTensor()
+                mrcnn_bbox = torch.FloatTensor()
                 mrcnn_class_logits = mrcnn_class_logits.to(device)
                 mrcnn_bbox = mrcnn_bbox.to(device)
             else:

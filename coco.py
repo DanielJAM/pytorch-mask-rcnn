@@ -211,10 +211,6 @@ def evaluate_coco(model, dataset, coco, display, eval_type="bbox", limit=0, imag
         # Load image
         image = dataset.load_image(image_id)
 
-        # import matplotlib.pyplot as plt
-        # plt.imshow(image)
-        # plt.show()
-
         # Run detection
         t = time.time()
         r = model.detect([image])
