@@ -444,10 +444,10 @@ if __name__ == '__main__':
         if args.model == "last" or args.model[-3:] == "pth":
             model.model_dir = model_dir
 
-            f = open("loss_history.pckl", 'wb')
+            f = open("loss_history.pckl", 'rb')
             model.loss_history = pickle.load(f)
             f.close()
-            f2 = open("val_loss_history.pckl", 'wb')
+            f2 = open("val_loss_history.pckl", 'rb')
             model.val_loss_history = pickle.load(f2)
             f2.close()
         else:
