@@ -13,6 +13,7 @@ import math
 import os
 import random
 import re
+import pickle
 
 import numpy as np
 import torch
@@ -1530,7 +1531,7 @@ class MaskRCNN(nn.Module):
             # Normalize coordinates
             h, w = self.config.IMAGE_SHAPE[:2]
             scale = torch.from_numpy(np.array([h, w, h, w])).float()
-            with torch.no_grad:
+            with torch.no_grad():
                 scale = scale.to(device)
                 gt_boxes = gt_boxes / scale
 
@@ -1641,6 +1642,12 @@ class MaskRCNN(nn.Module):
             self.val_loss_history.append(
                 [val_loss, val_loss_rpn_class, val_loss_rpn_bbox, val_loss_mrcnn_class, val_loss_mrcnn_bbox])
             visualize.plot_loss(self.loss_history, self.val_loss_history, save=True, log_dir=self.log_dir)
+            f = open("loss_history.pckl", 'wb')
+            pickle.dump(self.loss_history, f)
+            f.close()
+            f2 = open("val_loss_history.pckl", 'wb')
+            pickle.dump(self.val_loss_history, f2)
+            f2.close()
 
             # statistics = round(time.process_time(), 2)
             # print("Statistics took:", statistics - end_validation, "seconds\t total elapsed:", statistics)

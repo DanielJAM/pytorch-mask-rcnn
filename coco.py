@@ -42,6 +42,7 @@ import datetime
 from distutils.util import strtobool
 import os
 import numpy as np
+import pickle
 import random
 import sys
 import time
@@ -229,6 +230,10 @@ def evaluate_coco(model, dataset, coco, display, eval_type="bbox", limit=0, imag
                                                r["rois"], r["class_ids"],
                                                r["scores"])
             results.extend(image_results)
+
+    if len(results) == 0:
+        print("No objects were detected...")
+        raise ValueError("No objects were detected...")
 
     # Load results. This modifies results with additional attributes.
     coco_results = coco.loadRes(results)
@@ -438,6 +443,13 @@ if __name__ == '__main__':
         # Fix variables if training with model previously trained by this repository
         if args.model == "last" or args.model[-3:] == "pth":
             model.model_dir = model_dir
+
+            f = open("loss_history.pckl", 'wb')
+            model.loss_history = pickle.load(f)
+            f.close()
+            f2 = open("val_loss_history.pckl", 'wb')
+            model.val_loss_history = pickle.load(f2)
+            f2.close()
         else:
             config.START_TIME = datetime.datetime.now()
             config.intermediate_time = 0
