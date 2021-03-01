@@ -8,3 +8,5 @@ pycocotools
 *_ext*
 /*.whl
 /models
+/loss_history.pckl
+/val_loss_history.pckl
